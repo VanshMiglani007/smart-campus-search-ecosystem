@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { SearchProvider, useSearch } from './context/SearchContext';
 import Navbar from './components/Navbar';
 import ParticleBackground from './components/ParticleBackground';
 import AlgorithmPanel from './components/AlgorithmPanel';
@@ -31,21 +32,31 @@ function AnimatedRoutes() {
   );
 }
 
+function AppContent() {
+  const { lastOperation } = useSearch();
+
+  return (
+    <div className="relative min-h-screen">
+      <ParticleBackground />
+      <Navbar />
+      <main className="relative z-10">
+        <AnimatedRoutes />
+      </main>
+      <AlgorithmPanel
+        activeDS={['trie', 'heap', 'lru', 'hashmap']}
+        lastOp={lastOperation.op}
+        complexity={lastOperation.complexity}
+      />
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <div className="relative min-h-screen">
-        <ParticleBackground />
-        <Navbar />
-        <main className="relative z-10">
-          <AnimatedRoutes />
-        </main>
-        <AlgorithmPanel
-          activeDS={['trie', 'heap', 'lru', 'hashmap']}
-          lastOp="init()"
-          complexity="—"
-        />
-      </div>
+      <SearchProvider>
+        <AppContent />
+      </SearchProvider>
     </Router>
   );
 }
