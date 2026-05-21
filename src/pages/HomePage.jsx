@@ -1,12 +1,17 @@
 import { motion } from 'framer-motion';
-import { Search, GitBranch, BarChart3, Clock, TrendingUp, Gauge, SpellCheck, BookOpen } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, GitBranch, BarChart3, Clock, TrendingUp, Gauge, SpellCheck, BookOpen, Type } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSearch } from '../context/SearchContext';
+import SearchBar from '../components/SearchBar';
+import TrendingPanel from '../components/TrendingPanel';
+import ComplexityBadge from '../components/ComplexityBadge';
+import { getCategories, getCategoryColor } from '../data/campusData';
 
 const features = [
   {
     title: 'Live Autocomplete',
     description: 'Trie-powered instant search suggestions as you type',
-    icon: Search,
+    icon: Type,
     path: '/autocomplete',
     color: '#4f8ef7',
     complexity: 'O(L)',
@@ -61,7 +66,23 @@ const features = [
   },
 ];
 
+const quickCategories = [
+  { name: 'Notes', category: 'notes' },
+  { name: 'Events', category: 'events' },
+  { name: 'Faculty', category: 'faculty' },
+  { name: 'Hostel', category: 'hostel' },
+  { name: 'Library', category: 'library' },
+  { name: 'Courses', category: 'courses' },
+];
+
 const HomePage = () => {
+  const { trendingItems, recentSearches, recordSelection } = useSearch();
+  const navigate = useNavigate();
+
+  const handleSelectSuggestion = (word) => {
+    recordSelection(word);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -71,7 +92,7 @@ const HomePage = () => {
       className="min-h-screen pt-14"
     >
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center px-4 pt-20 pb-16">
+      <section className="relative flex flex-col items-center justify-center px-4 pt-16 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,7 +115,7 @@ const HomePage = () => {
           </p>
 
           {/* Algorithm Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
             {[
               { name: 'Trie', complexity: 'O(L)', color: '#4f8ef7' },
               { name: 'MaxHeap', complexity: 'O(log N)', color: '#f59e0b' },
@@ -117,28 +138,90 @@ const HomePage = () => {
           </div>
         </motion.div>
 
-        {/* Placeholder for search bar — will be fully wired in Milestone 3 */}
+        {/* Search Bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full max-w-2xl mx-auto mb-16"
+          className="w-full max-w-2xl mx-auto mb-8"
         >
-          <div className="glass-card flex items-center gap-3 px-5 py-4">
-            <Search size={20} className="text-text-muted" />
-            <span className="text-text-muted text-sm">
-              Search bar coming in Milestone 3...
-            </span>
-          </div>
+          <SearchBar onSelectSuggestion={handleSelectSuggestion} />
+        </motion.div>
+
+        {/* Quick Categories */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex flex-wrap items-center justify-center gap-2 mb-12"
+        >
+          {quickCategories.map((cat) => {
+            const color = getCategoryColor(cat.category);
+            return (
+              <button
+                key={cat.category}
+                onClick={() => navigate('/autocomplete')}
+                className="text-xs px-3 py-1.5 rounded-full border transition-all hover:scale-105"
+                style={{
+                  color,
+                  borderColor: `${color}30`,
+                  backgroundColor: `${color}08`,
+                }}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
         </motion.div>
       </section>
+
+      {/* Trending Section */}
+      <section className="max-w-6xl mx-auto px-4 pb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <TrendingPanel items={trendingItems} />
+        </motion.div>
+      </section>
+
+      {/* Recent Searches */}
+      {recentSearches.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 pb-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={18} className="text-accent-cyan" />
+              <h3 className="text-sm font-semibold text-text-primary">Your Recent Searches</h3>
+              <ComplexityBadge type="ops" value="O(1)" color="cyan" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recentSearches.map((item, i) => (
+                <motion.span
+                  key={item.key}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="text-xs px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-text-secondary hover:bg-white/10 cursor-pointer transition-colors"
+                >
+                  {item.key}
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+      )}
 
       {/* Feature Cards Grid */}
       <section className="max-w-6xl mx-auto px-4 pb-20">
         <motion.h2
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.6 }}
           className="text-2xl font-bold text-center mb-10 gradient-text"
         >
           Explore All Features
@@ -152,7 +235,7 @@ const HomePage = () => {
                 key={feature.path}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 * index }}
+                transition={{ duration: 0.3, delay: 0.1 * index + 0.5 }}
               >
                 <Link to={feature.path} className="block">
                   <div className="glass-card-hover p-5 h-full">
@@ -185,6 +268,28 @@ const HomePage = () => {
               </motion.div>
             );
           })}
+        </div>
+      </section>
+
+      {/* Viva Info Box */}
+      <section className="max-w-3xl mx-auto px-4 pb-16">
+        <div className="glass-card p-5">
+          <h4 className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
+            📚 About This Platform
+          </h4>
+          <p className="text-xs text-text-secondary leading-relaxed mb-2">
+            This platform demonstrates 5 core Data Structures & Algorithms working together in a real-world search engine.
+            Every search query triggers: <span className="font-mono text-accent-blue">Trie.getSuggestions()</span>,{' '}
+            <span className="font-mono text-accent-purple">HashMap.increment()</span>,{' '}
+            <span className="font-mono text-warning">MaxHeap.updateScore()</span>, and{' '}
+            <span className="font-mono text-accent-cyan">LRUCache.put()</span> — all in real time.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <ComplexityBadge type="time" value="O(L) Trie" color="blue" />
+            <ComplexityBadge type="time" value="O(log N) Heap" color="amber" />
+            <ComplexityBadge type="time" value="O(1) LRU" color="cyan" />
+            <ComplexityBadge type="time" value="O(1)* HashMap" color="purple" />
+          </div>
         </div>
       </section>
     </motion.div>
