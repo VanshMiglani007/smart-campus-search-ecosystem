@@ -11,7 +11,7 @@ const TrendingPanel = ({ items = [], onClickItem }) => {
         <h3 className="text-sm font-semibold text-text-primary">Trending Now</h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         {items.map((item, index) => (
           <motion.div
             key={item.word}
