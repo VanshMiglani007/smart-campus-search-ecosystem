@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, Flame } from 'lucide-react';
-import { getCategoryColor } from '../data/campusData';
 
 const TrendingPanel = ({ items = [] }) => {
   if (!items || items.length === 0) return null;

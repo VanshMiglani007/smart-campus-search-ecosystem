@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   ReactFlow,
@@ -79,15 +79,24 @@ function TrieNodeComponent({ data }) {
         <div
           style={{
             position: 'absolute',
-            bottom: -3,
-            right: -3,
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
+            bottom: -6,
+            right: -6,
             backgroundColor: '#00d4aa',
-            border: '2px solid #111118',
+            color: '#0b0f19',
+            borderRadius: '50%',
+            width: 14,
+            height: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 8,
+            fontWeight: 800,
+            boxShadow: '0 0 8px rgba(0,212,170,0.4)',
           }}
-        />
+          title={`Search Frequency: ${frequency}`}
+        >
+          {frequency}
+        </div>
       )}
     </div>
   );
@@ -95,95 +104,94 @@ function TrieNodeComponent({ data }) {
 
 const nodeTypes = { trieNode: TrieNodeComponent };
 
-// ── Layout algorithm: assign positions to Trie nodes ──
-function layoutTrieNodes(trieData, highlightedIds = [], newNodeIds = [], deletedIds = []) {
-  const { nodes: rawNodes, edges: rawEdges } = trieData;
-  if (!rawNodes || rawNodes.length === 0) return { nodes: [], edges: [] };
-
-  // Build adjacency for children layout
-  const childrenMap = {};
-  for (const edge of rawEdges) {
-    if (!childrenMap[edge.source]) childrenMap[edge.source] = [];
-    childrenMap[edge.source].push(edge.target);
-  }
-
-  const HORIZONTAL_SPACING = 70;
-  const VERTICAL_SPACING = 80;
-
-  // Compute subtree widths for proper spacing
-  const subtreeWidths = {};
-  function computeWidth(nodeId) {
-    const children = childrenMap[nodeId] || [];
-    if (children.length === 0) {
-      subtreeWidths[nodeId] = 1;
-      return 1;
-    }
-    let total = 0;
-    for (const child of children) {
-      total += computeWidth(child);
-    }
-    subtreeWidths[nodeId] = total;
-    return total;
-  }
-
-  const rootId = rawNodes[0]?.id;
-  if (!rootId) return { nodes: [], edges: [] };
-  computeWidth(rootId);
-
-  // Assign positions using DFS
-  const positions = {};
-  function assignPositions(nodeId, x, depth) {
-    positions[nodeId] = { x, y: depth * VERTICAL_SPACING };
-    const children = childrenMap[nodeId] || [];
-    if (children.length === 0) return;
-
-    const totalWidth = (subtreeWidths[nodeId] || 1) * HORIZONTAL_SPACING;
-    let currentX = x - totalWidth / 2;
-
-    for (const child of children) {
-      const childWidth = (subtreeWidths[child] || 1) * HORIZONTAL_SPACING;
-      const childX = currentX + childWidth / 2;
-      assignPositions(child, childX, depth + 1);
-      currentX += childWidth;
-    }
-  }
-
-  assignPositions(rootId, 0, 0);
-
+/**
+ * Perform custom layout of tree nodes
+ * Returns { nodes, edges } compatible with React Flow
+ */
+function layoutTrieNodes(trieNodes, highlightedIds = [], newNodeIds = []) {
+  const flowNodes = [];
+  const flowEdges = [];
   const highlightSet = new Set(highlightedIds);
   const newSet = new Set(newNodeIds);
-  const deletedSet = new Set(deletedIds);
 
-  const nodeMap = {};
-  for (const n of rawNodes) {
-    nodeMap[n.id] = n;
-  }
+  // Group nodes by levels
+  const levels = {};
+  trieNodes.forEach((node) => {
+    if (!levels[node.level]) {
+      levels[node.level] = [];
+    }
+    levels[node.level].push(node);
+  });
 
-  const flowNodes = rawNodes.map((n) => ({
-    id: n.id,
-    type: 'trieNode',
-    position: positions[n.id] || { x: 0, y: 0 },
-    data: {
-      label: n.char,
-      isEndOfWord: n.isEndOfWord,
-      isHighlighted: highlightSet.has(n.id),
-      isNewlyInserted: newSet.has(n.id),
-      isDeleted: deletedSet.has(n.id),
-      frequency: n.frequency,
-      childCount: n.childCount,
-    },
-  }));
+  const levelKeys = Object.keys(levels).sort((a, b) => Number(a) - Number(b));
+  const verticalSpacing = 95;
+  const initialHorizontalSpacing = 420;
 
-  const flowEdges = rawEdges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    style: {
-      stroke: highlightSet.has(e.target) ? '#4f8ef7' : 'rgba(255,255,255,0.15)',
-      strokeWidth: highlightSet.has(e.target) ? 2.5 : 1.5,
-    },
-    animated: highlightSet.has(e.target),
-  }));
+  levelKeys.forEach((lvlStr) => {
+    const level = Number(lvlStr);
+    const nodesInLevel = levels[level];
+    const horizontalSpacing = initialHorizontalSpacing / Math.pow(1.5, level);
+
+    // Sort nodes to maintain visual child order matching left-to-right parent structure
+    nodesInLevel.sort((a, b) => a.path.localeCompare(b.path));
+
+    const totalWidth = (nodesInLevel.length - 1) * horizontalSpacing;
+
+    nodesInLevel.forEach((node, idx) => {
+      let x = idx * horizontalSpacing - totalWidth / 2;
+
+      // Handle custom alignment based on parent position
+      if (level > 0) {
+        const parentId = node.parentId;
+        const parentNode = trieNodes.find((n) => n.id === parentId);
+        if (parentNode) {
+          const parentFlow = flowNodes.find((fn) => fn.id === parentId);
+          if (parentFlow) {
+            const siblings = nodesInLevel.filter((n) => n.parentId === parentId);
+            const sibIdx = siblings.findIndex((s) => s.id === node.id);
+            const sibSpacing = 50;
+            const sibTotal = (siblings.length - 1) * sibSpacing;
+            x = parentFlow.position.x + sibIdx * sibSpacing - sibTotal / 2;
+          }
+        }
+      }
+
+      flowNodes.push({
+        id: node.id,
+        type: 'trieNode',
+        position: { x, y: level * verticalSpacing },
+        data: {
+          label: node.char,
+          isEndOfWord: node.isEndOfWord,
+          isHighlighted: highlightSet.has(node.id),
+          isNewlyInserted: newSet.has(node.id),
+          isDeleted: node.isDeleted,
+          frequency: node.frequency,
+          childCount: node.childCount,
+        },
+      });
+    });
+  });
+
+  // Create connections
+  trieNodes.forEach((node) => {
+    if (node.parentId) {
+      const isConnectionHighlighted =
+        highlightSet.has(node.id) && highlightSet.has(node.parentId);
+      flowEdges.push({
+        id: `e-${node.parentId}-${node.id}`,
+        source: node.parentId,
+        target: node.id,
+        style: {
+          stroke: isConnectionHighlighted
+            ? '#4f8ef7'
+            : 'rgba(255,255,255,0.15)',
+          strokeWidth: isConnectionHighlighted ? 2.5 : 1.5,
+        },
+        animated: isConnectionHighlighted,
+      });
+    }
+  });
 
   return { nodes: flowNodes, edges: flowEdges };
 }
@@ -199,17 +207,20 @@ const TrieVisualizerPage = () => {
     return t;
   });
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const initialLayout = useMemo(() => {
+    const trieData = localTrie.getAllNodes();
+    return layoutTrieNodes(trieData, [], []);
+  }, [localTrie]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(() => initialLayout.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(() => initialLayout.edges);
   const [insertWord, setInsertWord] = useState('');
   const [searchWord, setSearchWord] = useState('');
   const [deleteWord, setDeleteWord] = useState('');
   const [prefixWord, setPrefixWord] = useState('');
-  const [allWords, setAllWords] = useState([]);
+  const [allWords, setAllWords] = useState(() => localTrie.getAllWords());
   const [statusMsg, setStatusMsg] = useState('');
   const [lastOp, setLastOp] = useState({ type: 'INIT', word: '', time: '' });
-  const [highlightedIds, setHighlightedIds] = useState([]);
-  const [newNodeIds, setNewNodeIds] = useState([]);
   const [prefixResults, setPrefixResults] = useState([]);
 
   // Refresh the visual tree from the Trie data
@@ -228,10 +239,6 @@ const TrieVisualizerPage = () => {
     [localTrie, setNodes, setEdges]
   );
 
-  // Initial render
-  useEffect(() => {
-    refreshTree();
-  }, [refreshTree]);
 
   // ── INSERT ──
   const handleInsert = () => {
@@ -243,8 +250,6 @@ const TrieVisualizerPage = () => {
     const elapsed = performance.now() - start;
 
     const path = localTrie.getTraversalPath(word);
-    setNewNodeIds(path);
-    setHighlightedIds([]);
     refreshTree([], path);
 
     setLastOp({ type: 'INSERT', word, time: `O(L) = O(${word.length})` });
@@ -253,7 +258,6 @@ const TrieVisualizerPage = () => {
 
     // Clear new-node highlight after animation
     setTimeout(() => {
-      setNewNodeIds([]);
       refreshTree();
     }, 1500);
   };
@@ -268,8 +272,6 @@ const TrieVisualizerPage = () => {
     const elapsed = performance.now() - start;
 
     const path = localTrie.getTraversalPath(word);
-    setHighlightedIds(path);
-    setNewNodeIds([]);
     refreshTree(path, []);
 
     setLastOp({ type: 'SEARCH', word, time: `O(L) = O(${word.length})` });
@@ -281,7 +283,6 @@ const TrieVisualizerPage = () => {
     setSearchWord('');
 
     setTimeout(() => {
-      setHighlightedIds([]);
       refreshTree();
     }, 2000);
   };
@@ -291,16 +292,11 @@ const TrieVisualizerPage = () => {
     const word = deleteWord.trim();
     if (!word) return;
 
-    const path = localTrie.getTraversalPath(word);
-
     const start = performance.now();
     const deleted = localTrie.delete(word);
     const elapsed = performance.now() - start;
 
     if (deleted) {
-      // Show deleted path briefly before refreshing
-      setHighlightedIds([]);
-      setNewNodeIds([]);
       refreshTree();
       setLastOp({ type: 'DELETE', word, time: `O(L) = O(${word.length})` });
       setStatusMsg(`🗑️ Deleted "${word}" — ${elapsed.toFixed(2)}ms`);
@@ -320,8 +316,6 @@ const TrieVisualizerPage = () => {
     const elapsed = performance.now() - start;
 
     const path = localTrie.getTraversalPath(prefix);
-    setHighlightedIds(path);
-    setNewNodeIds([]);
     refreshTree(path, []);
     setPrefixResults(results);
 
@@ -329,7 +323,6 @@ const TrieVisualizerPage = () => {
     setStatusMsg(`🔍 ${results.length} suggestions for "${prefix}" — ${elapsed.toFixed(2)}ms`);
 
     setTimeout(() => {
-      setHighlightedIds([]);
       refreshTree();
     }, 3000);
   };

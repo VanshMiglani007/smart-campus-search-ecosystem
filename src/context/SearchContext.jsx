@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useRef, useState, useCallback } from 'react';
 import { Trie } from '../algorithms/Trie';
 import { MaxHeap } from '../algorithms/Heap';
 import { LRUCache } from '../algorithms/LRUCache';
@@ -11,54 +11,62 @@ const SearchContext = createContext(null);
 export function SearchProvider({ children }) {
   // ── Refs for mutable DSA instances (persist across re-renders) ──
   const trieRef = useRef(null);
-  const heapRef = useRef(null);
-  const lruRef = useRef(null);
-  const hashMapRef = useRef(null);
-
-  // ── State for UI reactivity ──
-  const [analytics, setAnalytics] = useState({
-    totalSearches: 0,
-    sessionStart: Date.now(),
-    responseTimes: [],
-    searchTimeline: [],     // { timestamp, count } for line chart
-  });
-
-  const [recentSearches, setRecentSearches] = useState([]);
-  const [trendingItems, setTrendingItems] = useState([]);
-  const [frequencyData, setFrequencyData] = useState([]);
-  const [lastOperation, setLastOperation] = useState({ op: 'init()', complexity: '—' });
-
-  // ── Initialize all data structures on mount ──
-  useEffect(() => {
-    // Create Trie and load campus data
+  if (trieRef.current === null) {
     const trie = new Trie();
     campusData.forEach(item => {
       trie.insert(item.word, item.category, item.frequency);
     });
     trieRef.current = trie;
+  }
 
-    // Create MaxHeap and load initial frequencies
+  const heapRef = useRef(null);
+  if (heapRef.current === null) {
     const heap = new MaxHeap();
     campusData.forEach(item => {
       heap.insert({ word: item.word, score: item.frequency });
     });
     heapRef.current = heap;
+  }
 
-    // Create LRU Cache
-    const lru = new LRUCache(7);
-    lruRef.current = lru;
+  const lruRef = useRef(null);
+  if (lruRef.current === null) {
+    lruRef.current = new LRUCache(7);
+  }
 
-    // Create HashMap for frequency tracking
+  const hashMapRef = useRef(null);
+  if (hashMapRef.current === null) {
     const hashMap = new HashMap(53);
     campusData.forEach(item => {
       hashMap.set(item.word, item.frequency);
     });
     hashMapRef.current = hashMap;
+  }
 
-    // Set initial UI state
-    setTrendingItems(heap.getTopN(5));
-    setFrequencyData(hashMap.getTopN(10));
-  }, []);
+  // ── State for UI reactivity ──
+  const [analytics, setAnalytics] = useState(() => ({
+    totalSearches: 0,
+    sessionStart: Date.now(),
+    responseTimes: [],
+    searchTimeline: [],     // { timestamp, count } for line chart
+  }));
+
+  const [recentSearches, setRecentSearches] = useState([]);
+
+  const [trendingItems, setTrendingItems] = useState(() => {
+    return [...campusData]
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 5)
+      .map(item => ({ word: item.word, score: item.frequency }));
+  });
+
+  const [frequencyData, setFrequencyData] = useState(() => {
+    return [...campusData]
+      .sort((a, b) => b.frequency - a.frequency)
+      .slice(0, 10)
+      .map(item => ({ key: item.word, value: item.frequency }));
+  });
+
+  const [lastOperation, setLastOperation] = useState({ op: 'init()', complexity: '—' });
 
   /**
    * Perform a search query — updates all data structures
@@ -193,6 +201,7 @@ export function SearchProvider({ children }) {
 /**
  * Custom hook to use the search context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSearch() {
   const context = useContext(SearchContext);
   if (!context) {
@@ -200,5 +209,3 @@ export function useSearch() {
   }
   return context;
 }
-
-export default SearchContext;

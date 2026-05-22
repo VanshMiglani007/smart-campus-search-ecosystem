@@ -4,11 +4,11 @@ const ParticleBackground = () => {
   const particles = useMemo(() => {
     return Array.from({ length: 30 }, (_, i) => ({
       id: i,
-      size: Math.random() * 4 + 2,
-      left: Math.random() * 100,
-      delay: Math.random() * 15,
-      duration: Math.random() * 20 + 15,
-      color: ['#4f8ef7', '#00d4aa', '#a855f7'][Math.floor(Math.random() * 3)],
+      size: (i % 4) + 2,
+      left: (i * 37) % 100,
+      delay: (i * 7) % 15,
+      duration: ((i * 11) % 20) + 15,
+      color: ['#4f8ef7', '#00d4aa', '#a855f7'][i % 3],
     }));
   }, []);
 

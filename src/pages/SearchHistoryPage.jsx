@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, Plus, ArrowRight, BookOpen, Trash2 } from 'lucide-react';
+import { Clock, Plus, BookOpen, Trash2 } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
 import ComplexityBadge from '../components/ComplexityBadge';
 

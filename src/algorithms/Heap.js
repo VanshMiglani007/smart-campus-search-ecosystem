@@ -104,7 +104,7 @@ export class MaxHeap {
    * Time: O(log N)
    */
   insert({ word, score }) {
-    if (this.indexMap.hasOwnProperty(word)) {
+    if (Object.prototype.hasOwnProperty.call(this.indexMap, word)) {
       // Update existing
       this.updateScore(word, score - this.heap[this.indexMap[word]].score);
       return;
@@ -149,7 +149,7 @@ export class MaxHeap {
    * Time: O(N + log N) → O(N) for find + O(log N) for re-heapify
    */
   updateScore(word, delta) {
-    if (!this.indexMap.hasOwnProperty(word)) {
+    if (!Object.prototype.hasOwnProperty.call(this.indexMap, word)) {
       // Word doesn't exist, insert it
       this.insert({ word, score: delta });
       return;
@@ -200,14 +200,14 @@ export class MaxHeap {
    * Check if a word exists in the heap
    */
   has(word) {
-    return this.indexMap.hasOwnProperty(word);
+    return Object.prototype.hasOwnProperty.call(this.indexMap, word);
   }
 
   /**
    * Get score for a specific word
    */
   getScore(word) {
-    if (!this.indexMap.hasOwnProperty(word)) return 0;
+    if (!Object.prototype.hasOwnProperty.call(this.indexMap, word)) return 0;
     return this.heap[this.indexMap[word]].score;
   }
 

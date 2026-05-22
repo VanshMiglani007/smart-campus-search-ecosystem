@@ -12,69 +12,76 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
   const [typoSuggestion, setTypoSuggestion] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isVoiceSupported] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      return !!SpeechRecognition;
+    }
+    return false;
+  });
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // Voice search setup
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-IN';
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setQuery(transcript);
-        handleSearch(transcript);
-        setIsListening(false);
-      };
-
-      recognition.onerror = () => {
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (e) { /* ignore */ }
-      }
-    };
-  }, []);
-
   const handleSearch = useCallback((searchQuery) => {
-    const q = searchQuery || query;
-    if (!q.trim()) {
+    if (!searchQuery || !searchQuery.trim()) {
       setSuggestions([]);
       setSearchMeta(null);
       setTypoSuggestion(null);
       return;
     }
 
-    const result = performSearch(q.trim());
+    const trimmed = searchQuery.trim();
+    const result = performSearch(trimmed);
     setSuggestions(result.suggestions);
     setSearchMeta({
       elapsed: result.elapsed,
       nodesTraversed: result.nodesTraversed,
       count: result.suggestions.length,
-      queryLength: q.trim().length,
+      queryLength: trimmed.length,
     });
 
     // If no results, try typo correction
     if (result.suggestions.length === 0) {
-      const correction = getTypoCorrection(q.trim());
+      const correction = getTypoCorrection(trimmed);
       setTypoSuggestion(correction);
     } else {
       setTypoSuggestion(null);
     }
-  }, [query, performSearch, getTypoCorrection]);
+  }, [performSearch, getTypoCorrection]);
+
+  // Voice search setup
+  useEffect(() => {
+    if (!isVoiceSupported) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN';
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setQuery(transcript);
+      handleSearch(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch { /* ignore */ }
+      }
+    };
+  }, [isVoiceSupported, handleSearch]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -107,7 +114,7 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
       try {
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (e) {
+      } catch {
         setIsListening(false);
       }
     }
@@ -160,15 +167,15 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
         {/* Voice Search Button */}
         <button
           onClick={toggleVoice}
-          disabled={!recognitionRef.current}
+          disabled={!isVoiceSupported}
           className={`p-2 rounded-lg transition-all flex-shrink-0 ${
             isListening
               ? 'text-red-400 bg-red-500/10 mic-listening'
-              : recognitionRef.current
+              : isVoiceSupported
                 ? 'text-text-muted hover:text-text-primary hover:bg-white/5'
                 : 'text-text-muted/30 cursor-not-allowed'
           }`}
-          title={recognitionRef.current ? '🎤 Voice search (Chrome)' : 'Voice search requires Chrome'}
+          title={isVoiceSupported ? '🎤 Voice search (Chrome)' : 'Voice search requires Chrome'}
           aria-label="Voice search"
         >
           {isListening ? <MicOff size={18} /> : <Mic size={18} />}

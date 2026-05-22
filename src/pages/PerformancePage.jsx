@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Gauge, Play, BookOpen, Zap } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';

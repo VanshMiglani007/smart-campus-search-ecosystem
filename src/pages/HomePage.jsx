@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
-import { Search, GitBranch, BarChart3, Clock, TrendingUp, Gauge, SpellCheck, BookOpen, Type } from 'lucide-react';
+import { GitBranch, BarChart3, Clock, TrendingUp, Gauge, SpellCheck, BookOpen, Type } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../context/SearchContext';
 import SearchBar from '../components/SearchBar';
 import TrendingPanel from '../components/TrendingPanel';
 import ComplexityBadge from '../components/ComplexityBadge';
-import { getCategories, getCategoryColor } from '../data/campusData';
+import { getCategoryColor } from '../data/campusData';
 
 const features = [
   {

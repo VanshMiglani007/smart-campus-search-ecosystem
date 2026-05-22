@@ -37,6 +37,7 @@ const AnalyticsDashboard = () => {
   }, [analytics.responseTimes]);
 
   const uniqueTerms = useMemo(() => {
+    void analytics.totalSearches;
     return hashMap?.current ? hashMap.current.getCount() : 0;
   }, [hashMap, analytics.totalSearches]);
 

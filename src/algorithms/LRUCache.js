@@ -82,7 +82,7 @@ export class LRUCache {
    * Time: O(1)
    */
   get(key) {
-    if (!this.map.hasOwnProperty(key)) {
+    if (!Object.prototype.hasOwnProperty.call(this.map, key)) {
       return -1;
     }
 
@@ -102,7 +102,7 @@ export class LRUCache {
     let evictedKey = null;
 
     // If key already exists, update and move to front
-    if (this.map.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(this.map, key)) {
       const node = this.map[key];
       node.value = value || node.value;
       this._moveToFront(node);
@@ -152,7 +152,7 @@ export class LRUCache {
    * Time: O(1)
    */
   has(key) {
-    return this.map.hasOwnProperty(key);
+    return Object.prototype.hasOwnProperty.call(this.map, key);
   }
 
   /**
@@ -160,7 +160,7 @@ export class LRUCache {
    * Time: O(1)
    */
   remove(key) {
-    if (!this.map.hasOwnProperty(key)) return false;
+    if (!Object.prototype.hasOwnProperty.call(this.map, key)) return false;
 
     const node = this.map[key];
     this._removeNode(node);

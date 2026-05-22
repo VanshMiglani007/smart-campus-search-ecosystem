@@ -1,13 +1,15 @@
 import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { TrendingUp, Plus, Flame, BookOpen, ArrowUp } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
 import ComplexityBadge from '../components/ComplexityBadge';
 
 const TrendingPage = () => {
-  const { heap, trendingItems, performSearch } = useSearch();
+  const { heap, performSearch } = useSearch();
   const [simulateInput, setSimulateInput] = useState('');
-  const [heapArray, setHeapArray] = useState([]);
+  const [heapArray, setHeapArray] = useState(() => {
+    return heap?.current ? heap.current.getRawHeap() : [];
+  });
   const [swapIndices, setSwapIndices] = useState([]);
 
   const refreshHeap = useCallback(() => {
@@ -15,11 +17,6 @@ const TrendingPage = () => {
       setHeapArray(heap.current.getRawHeap());
     }
   }, [heap]);
-
-  // Refresh on mount / whenever trending changes
-  useState(() => {
-    refreshHeap();
-  });
 
   const handleSimulateSearch = () => {
     const word = simulateInput.trim();
@@ -39,9 +36,9 @@ const TrendingPage = () => {
     }
   };
 
-  // Build tree visualization levels from the heap array
+  // Build tree visualization levels from the heap array state
   const getTreeLevels = () => {
-    const arr = heap?.current?.getRawHeap() || [];
+    const arr = heapArray;
     if (arr.length === 0) return [];
 
     const levels = [];
@@ -61,8 +58,8 @@ const TrendingPage = () => {
   };
 
   const treeLevels = getTreeLevels();
-  const currentHeap = heap?.current?.getRawHeap() || [];
-  const topItems = heap?.current?.getTopN(10) || [];
+  const currentHeap = heapArray;
+  const topItems = [...heapArray].sort((a, b) => b.score - a.score).slice(0, 10);
 
   return (
     <motion.div
@@ -209,7 +206,7 @@ const TrendingPage = () => {
                 <span className="text-sm font-mono text-warning font-bold">{item.score}</span>
                 <div className="flex items-center gap-0.5 text-accent-cyan text-[10px]">
                   <ArrowUp size={10} />
-                  <span>+{Math.floor(Math.random() * 15) + 1}</span>
+                  <span>+{((i * 7 + 13) % 15) + 1}</span>
                 </div>
               </motion.div>
             ))}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Type, BookOpen, Zap } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
@@ -8,6 +8,16 @@ import ComplexityBadge from '../components/ComplexityBadge';
 const AutocompletePage = () => {
   const { recordSelection, analytics } = useSearch();
   const [selectedWord, setSelectedWord] = useState(null);
+  const [durationMin, setDurationMin] = useState(0);
+
+  useEffect(() => {
+    const updateDuration = () => {
+      setDurationMin(Math.floor((Date.now() - analytics.sessionStart) / 60000));
+    };
+    updateDuration();
+    const interval = setInterval(updateDuration, 10000);
+    return () => clearInterval(interval);
+  }, [analytics.sessionStart]);
 
   const handleSelect = (word) => {
     setSelectedWord(word);
@@ -157,7 +167,7 @@ const AutocompletePage = () => {
             },
             {
               label: 'Session Duration',
-              value: `${Math.floor((Date.now() - analytics.sessionStart) / 60000)}m`,
+              value: `${durationMin}m`,
               color: '#f59e0b',
             },
           ].map((stat) => (
