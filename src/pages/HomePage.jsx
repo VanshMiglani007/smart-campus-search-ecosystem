@@ -106,12 +106,12 @@ const HomePage = () => {
     >
       <div className="max-w-[1400px] mx-auto px-6 w-full flex flex-col">
         {/* 1. Hero Section */}
-        <section className="relative flex flex-col items-center justify-center text-center pt-20 pb-16">
+        <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center pt-[120px] pb-16">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="max-w-4xl mx-auto"
+            className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center"
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 mb-8">
               <BookOpen size={14} className="text-accent-cyan" />
@@ -120,16 +120,44 @@ const HomePage = () => {
               </span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold mb-6 leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight mb-6 leading-tight max-w-5xl mx-auto">
               <span className="gradient-text">Campus Intelligence</span>
             </h1>
 
-            <p className="text-base md:text-lg text-text-secondary mb-8 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-text-secondary mb-12 max-w-2xl mx-auto leading-relaxed">
               Search Everything. Understand Everything.
             </p>
 
+            {/* Search Bar Container */}
+            <div className="w-full max-w-4xl mx-auto mb-8 px-4">
+              <div className="shadow-[0_0_50px_rgba(79,142,247,0.15)] rounded-2xl">
+                <SearchBar onSelectSuggestion={handleSelectSuggestion} />
+              </div>
+            </div>
+
+            {/* Quick Categories */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mb-12">
+              {quickCategories.map((cat) => {
+                const color = getCategoryColor(cat.category);
+                return (
+                  <button
+                    key={cat.category}
+                    onClick={() => handleCategoryClick(cat.name)}
+                    className="text-sm px-4 py-2 rounded-full border transition-all hover:scale-105 hover:bg-white/5 active:scale-95 cursor-pointer font-medium"
+                    style={{
+                      color,
+                      borderColor: `${color}30`,
+                      backgroundColor: `${color}08`,
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Algorithm Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               {[
                 { name: 'Trie', complexity: 'O(L)', color: '#4f8ef7' },
                 { name: 'MaxHeap', complexity: 'O(log N)', color: '#f59e0b' },
@@ -139,109 +167,70 @@ const HomePage = () => {
               ].map((algo) => (
                 <span
                   key={algo.name}
-                  className="text-xs font-mono font-medium px-3.5 py-1.5 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border"
+                  className="text-xs md:text-sm font-mono font-medium px-4 py-2 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border"
                   style={{
                     backgroundColor: `${algo.color}10`,
                     color: algo.color,
                     borderColor: `${algo.color}25`,
                   }}
                 >
-                  {algo.name} <span className="opacity-60 text-xs">{algo.complexity}</span>
+                  {algo.name} <span className="opacity-60 text-xs ml-1">{algo.complexity}</span>
                 </span>
               ))}
             </div>
           </motion.div>
         </section>
 
-        {/* 2. Search Area */}
-        <section className="py-16 border-t border-white/5 flex flex-col items-center">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-center mb-8 text-text-primary">
-            Explore Campus IQ Search
-          </h2>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full max-w-3xl mx-auto mb-10"
-          >
-            <SearchBar onSelectSuggestion={handleSelectSuggestion} />
-          </motion.div>
+        {/* 2. Trending Section */}
+        <section className="py-24 border-t border-white/5">
+          <div className="glass-card p-8 md:p-12 shadow-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <TrendingPanel items={trendingItems} onClickItem={handleTrendingClick} />
+            </motion.div>
 
-          {/* Quick Categories */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center gap-2.5"
-          >
-            {quickCategories.map((cat) => {
-              const color = getCategoryColor(cat.category);
-              return (
-                <button
-                  key={cat.category}
-                  onClick={() => handleCategoryClick(cat.name)}
-                  className="text-sm px-4 py-2 rounded-full border transition-all hover:scale-105 hover:bg-white/5 active:scale-95 cursor-pointer font-medium"
-                  style={{
-                    color,
-                    borderColor: `${color}30`,
-                    backgroundColor: `${color}08`,
-                  }}
-                >
-                  {cat.name}
-                </button>
-              );
-            })}
-          </motion.div>
+            {/* Recent Searches */}
+            {recentSearches.length > 0 && (
+              <div className="mt-12 pt-12 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-6">
+                  <Clock size={18} className="text-accent-cyan" />
+                  <h3 className="text-xl font-bold tracking-tight text-text-primary">Your Recent Searches</h3>
+                  <ComplexityBadge type="ops" value="O(1)" color="cyan" />
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                  {recentSearches.map((item, i) => (
+                    <motion.span
+                      key={item.key}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      onClick={() => handleRecentClick(item.key)}
+                      className="text-sm px-4.5 py-2.5 rounded-full border border-white/10 bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary hover:border-white/20 cursor-pointer transition-all active:scale-95"
+                    >
+                      {item.key}
+                    </motion.span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* 3. Trending Section */}
-        <section className="py-16 border-t border-white/5">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <TrendingPanel items={trendingItems} onClickItem={handleTrendingClick} />
-          </motion.div>
-
-          {/* Recent Searches */}
-          {recentSearches.length > 0 && (
-            <div className="mt-12 pt-12 border-t border-white/5">
-              <div className="flex items-center gap-2 mb-5">
-                <Clock size={18} className="text-accent-cyan" />
-                <h3 className="text-lg font-bold text-text-primary">Your Recent Searches</h3>
-                <ComplexityBadge type="ops" value="O(1)" color="cyan" />
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                {recentSearches.map((item, i) => (
-                  <motion.span
-                    key={item.key}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                    onClick={() => handleRecentClick(item.key)}
-                    className="text-sm px-4 py-2 rounded-full border border-white/10 bg-white/5 text-text-secondary hover:bg-white/10 hover:text-text-primary hover:border-white/20 cursor-pointer transition-all active:scale-95"
-                  >
-                    {item.key}
-                  </motion.span>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* 4. Features Section */}
-        <section className="py-16 border-t border-white/5">
+        {/* 3. Features Section */}
+        <section className="py-24 border-t border-white/5">
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="text-3xl md:text-4xl font-extrabold text-center mb-12 gradient-text"
+            className="text-4xl md:text-5xl font-bold tracking-tight text-center mb-16 gradient-text"
           >
             Explore All Features
           </motion.h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
@@ -253,17 +242,17 @@ const HomePage = () => {
                   className="h-full"
                 >
                   <Link to={feature.path} className="block h-full">
-                    <div className="glass-card-hover p-6 h-full flex flex-col justify-between transition-all duration-300">
+                    <div className="glass-card-hover p-8 min-h-[180px] h-full flex flex-col justify-between transition-all duration-300">
                       <div>
-                        <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start justify-between mb-6">
                           <div
                             className="w-12 h-12 rounded-xl flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
                             style={{ backgroundColor: `${feature.color}15` }}
                           >
-                            <Icon size={22} style={{ color: feature.color }} />
+                            <Icon size={24} style={{ color: feature.color }} />
                           </div>
                           <span
-                            className="text-xs font-mono font-medium px-2.5 py-1 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                            className="text-xs font-mono font-medium px-3 py-1 rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
                             style={{
                               backgroundColor: `${feature.color}15`,
                               color: feature.color,
@@ -273,7 +262,7 @@ const HomePage = () => {
                             {feature.complexity}
                           </span>
                         </div>
-                        <h3 className="text-lg font-bold text-text-primary mb-2">
+                        <h3 className="text-xl font-bold tracking-tight text-text-primary mb-3">
                           {feature.title}
                         </h3>
                         <p className="text-sm text-text-secondary leading-relaxed">
@@ -288,13 +277,13 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 5. About Box Section */}
-        <section className="py-16 border-t border-white/5 max-w-4xl mx-auto w-full">
-          <div className="glass-card p-8 shadow-2xl">
-            <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+        {/* 4. About Section */}
+        <section className="py-24 border-t border-white/5 max-w-4xl mx-auto w-full">
+          <div className="glass-card p-10 shadow-2xl">
+            <h4 className="text-2xl font-bold tracking-tight text-text-primary mb-4 flex items-center gap-2">
               📚 About This Platform
             </h4>
-            <p className="text-sm text-text-secondary leading-relaxed mb-6">
+            <p className="text-base text-text-secondary leading-relaxed mb-6">
               This platform demonstrates 5 core Data Structures & Algorithms working together in a real-world search engine.
               Every search query triggers: <span className="font-mono text-accent-blue">Trie.getSuggestions()</span>,{' '}
               <span className="font-mono text-accent-purple">HashMap.increment()</span>,{' '}
