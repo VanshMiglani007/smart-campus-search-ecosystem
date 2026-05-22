@@ -50,9 +50,9 @@ const SearchHistoryPage = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen pt-20 px-4"
+      className="min-h-screen pt-28 pb-16 px-6"
     >
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-accent-cyan/10 flex items-center justify-center mx-auto mb-4">
@@ -134,8 +134,9 @@ const SearchHistoryPage = () => {
                         x: 0,
                       }}
                       transition={{ duration: 0.3 }}
+                      onClick={() => setInputValue(item.key)}
                       className={`
-                        glass-card px-4 py-3 min-w-[100px] text-center cursor-default
+                        glass-card px-4 py-3 min-w-[100px] text-center cursor-pointer hover:border-accent-cyan/50 hover:bg-white/5 transition-all
                         ${index === 0 ? 'border-accent-cyan/30' : ''}
                         ${index === recentSearches.length - 1 ? 'border-red-500/20' : ''}
                         ${evictedKey === item.key ? 'bg-red-500/10' : ''}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Type, BookOpen, Zap } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useSearch } from '../context/SearchContext';
 import SearchBar from '../components/SearchBar';
 import ComplexityBadge from '../components/ComplexityBadge';
@@ -9,6 +10,9 @@ const AutocompletePage = () => {
   const { recordSelection, analytics } = useSearch();
   const [selectedWord, setSelectedWord] = useState(null);
   const [durationMin, setDurationMin] = useState(0);
+  const location = useLocation();
+
+  const initialQuery = location.state?.query || '';
 
   useEffect(() => {
     const updateDuration = () => {
@@ -30,11 +34,11 @@ const AutocompletePage = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen pt-20 px-4"
+      className="min-h-screen pt-28 pb-16 px-6"
     >
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Page Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           <div className="w-14 h-14 rounded-2xl bg-accent-blue/10 flex items-center justify-center mx-auto mb-4">
             <Type size={28} className="text-accent-blue" />
           </div>
@@ -45,11 +49,12 @@ const AutocompletePage = () => {
         </div>
 
         {/* Search Bar with Algorithm Info Panel */}
-        <div className="mb-8">
+        <div className="mb-10">
           <SearchBar
             onSelectSuggestion={handleSelect}
             autoFocus={true}
             showAlgorithmInfo={true}
+            initialQuery={initialQuery}
           />
         </div>
 

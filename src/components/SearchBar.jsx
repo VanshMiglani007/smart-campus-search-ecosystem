@@ -4,9 +4,9 @@ import { Search, Mic, MicOff, X } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
 import SuggestionDropdown from './SuggestionDropdown';
 
-const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = false }) => {
+const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = false, initialQuery = '' }) => {
   const { performSearch, getTypoCorrection } = useSearch();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState([]);
   const [searchMeta, setSearchMeta] = useState(null);
   const [typoSuggestion, setTypoSuggestion] = useState(null);
@@ -48,6 +48,16 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
       setTypoSuggestion(null);
     }
   }, [performSearch, getTypoCorrection]);
+
+  // Automatically execute search on mount if initialQuery is provided
+  useEffect(() => {
+    if (initialQuery) {
+      const timer = setTimeout(() => {
+        handleSearch(initialQuery);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialQuery, handleSearch]);
 
   // Voice search setup
   useEffect(() => {

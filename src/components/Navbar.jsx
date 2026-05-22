@@ -31,11 +31,11 @@ const Navbar = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5"
-      style={{ backgroundColor: 'rgba(10, 10, 15, 0.85)', backdropFilter: 'blur(16px)' }}
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-7xl z-50 rounded-2xl border border-white/10 shadow-2xl transition-all duration-300"
+      style={{ backgroundColor: 'rgba(10, 10, 15, 0.75)', backdropFilter: 'blur(20px)' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-16 px-2">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-blue to-accent-cyan flex items-center justify-center transition-transform group-hover:scale-110">
@@ -45,9 +45,9 @@ const Navbar = () => {
               CampusIQ
             </span>
           </NavLink>
-
+ 
           {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden xl:flex items-center gap-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -55,20 +55,17 @@ const Navbar = () => {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className="relative px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+                  className="relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-1.5 hover:text-text-primary hover:bg-white/5"
                   style={{
                     color: isActive ? '#f1f5f9' : '#94a3b8',
                   }}
                 >
-                  <Icon size={14} />
+                  <Icon size={14} style={{ color: isActive ? '#00d4aa' : undefined }} />
                   <span>{item.label}</span>
                   {isActive && (
                     <motion.div
                       layoutId="navbar-indicator"
-                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                      style={{
-                        background: 'linear-gradient(90deg, #4f8ef7, #00d4aa)',
-                      }}
+                      className="absolute inset-0 rounded-lg -z-10 bg-white/5 border border-white/8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                       transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                     />
                   )}
@@ -76,10 +73,10 @@ const Navbar = () => {
               );
             })}
           </div>
-
+ 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors"
+            className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle navigation menu"
           >
@@ -87,7 +84,7 @@ const Navbar = () => {
           </button>
         </div>
       </div>
-
+ 
       {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
@@ -96,7 +93,7 @@ const Navbar = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25 }}
-            className="lg:hidden overflow-hidden border-t border-white/5"
+            className="xl:hidden overflow-hidden border-t border-white/5 rounded-b-2xl"
             style={{ backgroundColor: 'rgba(17, 17, 24, 0.98)' }}
           >
             <div className="px-4 py-3 space-y-1">
