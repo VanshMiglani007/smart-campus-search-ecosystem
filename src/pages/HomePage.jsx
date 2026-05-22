@@ -247,7 +247,7 @@ const HomePage = () => {
             Trending Now
           </motion.h2>
 
-          <div className="glass-card rounded-3xl p-8 backdrop-blur shadow-2xl relative overflow-hidden">
+          <div className="glass-card rounded-3xl p-8 backdrop-blur shadow-2xl border border-white/10 relative">
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-warning/5 rounded-full blur-2xl pointer-events-none" />
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -362,7 +362,7 @@ const HomePage = () => {
             About Platform
           </motion.h2>
 
-          <div className="glass-card rounded-3xl p-10 shadow-2xl flex flex-col items-center text-center backdrop-blur relative overflow-hidden">
+          <div className="glass-card rounded-3xl p-10 shadow-2xl border border-white/10 flex flex-col items-center text-center backdrop-blur relative">
             <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-accent-blue/5 rounded-full blur-2xl pointer-events-none" />
             <p className="text-lg text-text-secondary leading-relaxed mb-8 max-w-3xl">
               This platform demonstrates 5 core Data Structures & Algorithms working together in a real-world search engine.
