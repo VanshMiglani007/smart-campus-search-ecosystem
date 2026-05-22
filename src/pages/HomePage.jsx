@@ -75,6 +75,24 @@ const quickCategories = [
   { name: 'Courses', category: 'courses' },
 ];
 
+const backgroundParticles = [
+  { size: 3, left: 12, top: 45, delay: 0.5, duration: 15, xVal: 10 },
+  { size: 4, left: 28, top: 15, delay: 2.1, duration: 22, xVal: -8 },
+  { size: 2, left: 45, top: 78, delay: 1.2, duration: 18, xVal: 15 },
+  { size: 5, left: 63, top: 22, delay: 3.4, duration: 25, xVal: -12 },
+  { size: 3, left: 82, top: 60, delay: 0.8, duration: 14, xVal: 8 },
+  { size: 4, left: 19, top: 88, delay: 4.5, duration: 20, xVal: 12 },
+  { size: 2, left: 35, top: 32, delay: 1.9, duration: 16, xVal: -10 },
+  { size: 5, left: 55, top: 67, delay: 2.8, duration: 27, xVal: 6 },
+  { size: 3, left: 74, top: 10, delay: 0.2, duration: 19, xVal: -15 },
+  { size: 4, left: 91, top: 50, delay: 3.9, duration: 21, xVal: 10 },
+  { size: 2, left: 8, top: 25, delay: 1.5, duration: 17, xVal: -5 },
+  { size: 3, left: 50, top: 40, delay: 2.5, duration: 24, xVal: 14 },
+  { size: 4, left: 68, top: 85, delay: 0.7, duration: 23, xVal: -10 },
+  { size: 2, left: 88, top: 30, delay: 4.1, duration: 15, xVal: 8 },
+  { size: 5, left: 30, top: 55, delay: 3.2, duration: 26, xVal: -12 }
+];
+
 const HomePage = () => {
   const { trendingItems, recentSearches, recordSelection } = useSearch();
   const navigate = useNavigate();
@@ -102,41 +120,78 @@ const HomePage = () => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen pt-[70px] pb-16 bg-[#0a0a0f]"
+      className="min-h-screen pt-[70px] pb-16 bg-[#0a0a0f] relative overflow-hidden"
     >
-      <div className="max-w-[1400px] mx-auto px-6 w-full flex flex-col">
-        {/* 1. Hero Section */}
-        <section className="relative min-h-[85vh] flex flex-col justify-center items-center text-center pt-[120px] pb-16">
+      {/* Premium Visual Effects: Ambient Gradient Blobs & Soft Background Glows */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[5%] left-[-10%] w-[600px] h-[600px] rounded-full bg-accent-blue/10 blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[35%] right-[-10%] w-[550px] h-[550px] rounded-full bg-accent-purple/8 blur-[130px] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute bottom-[5%] left-[10%] w-[600px] h-[600px] rounded-full bg-accent-cyan/8 blur-[160px] animate-pulse" style={{ animationDuration: '10s' }} />
+      </div>
+
+      {/* Premium Visual Effects: Subtle Animated Particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {backgroundParticles.map((pt, i) => {
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white/10"
+              style={{
+                width: pt.size,
+                height: pt.size,
+                left: `${pt.left}%`,
+                top: `${pt.top}%`,
+                boxShadow: '0 0 8px rgba(255, 255, 255, 0.3)',
+              }}
+              animate={{
+                y: [0, -140, 0],
+                x: [0, pt.xVal, 0],
+                opacity: [0.1, 0.35, 0.1],
+              }}
+              transition={{
+                duration: pt.duration,
+                repeat: Infinity,
+                delay: pt.delay,
+                ease: 'easeInOut',
+              }}
+            />
+          );
+        })}
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-6 w-full flex flex-col relative z-10">
+        {/* 1. Hero Section (Reduced Height) */}
+        <section className="relative min-h-[65vh] flex flex-col justify-center items-center text-center pt-[80px] pb-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
             className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 mb-6">
               <BookOpen size={14} className="text-accent-cyan" />
               <span className="text-xs text-text-secondary font-medium">
                 DSA-Powered Search Engine
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight mb-6 leading-tight max-w-5xl mx-auto">
+            <h1 className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight mb-5 leading-tight max-w-5xl mx-auto">
               <span className="gradient-text">Campus Intelligence</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-text-secondary mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-text-secondary mb-10 max-w-2xl mx-auto leading-relaxed">
               Search Everything. Understand Everything.
             </p>
 
             {/* Search Bar Container */}
             <div className="w-full max-w-4xl mx-auto mb-8 px-4">
-              <div className="shadow-[0_0_50px_rgba(79,142,247,0.15)] rounded-2xl">
+              <div className="shadow-[0_0_50px_rgba(79,142,247,0.18)] rounded-2xl">
                 <SearchBar onSelectSuggestion={handleSelectSuggestion} />
               </div>
             </div>
 
             {/* Quick Categories */}
-            <div className="flex flex-wrap items-center justify-center gap-2.5 mb-12">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
               {quickCategories.map((cat) => {
                 const color = getCategoryColor(cat.category);
                 return (
@@ -181,9 +236,19 @@ const HomePage = () => {
           </motion.div>
         </section>
 
-        {/* 2. Trending Section */}
-        <section className="py-24 border-t border-white/5">
-          <div className="glass-card p-8 md:p-12 shadow-2xl">
+        {/* 2. Trending Section wrapped in ONE premium container */}
+        <section className="py-16 border-t border-white/5">
+          <motion.h2
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl md:text-4xl font-bold tracking-tight text-center mb-10 gradient-text"
+          >
+            Trending Now
+          </motion.h2>
+
+          <div className="glass-card rounded-3xl p-8 backdrop-blur shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-warning/5 rounded-full blur-2xl pointer-events-none" />
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -194,10 +259,10 @@ const HomePage = () => {
 
             {/* Recent Searches */}
             {recentSearches.length > 0 && (
-              <div className="mt-12 pt-12 border-t border-white/5">
+              <div className="mt-10 pt-10 border-t border-white/5">
                 <div className="flex items-center gap-2 mb-6">
                   <Clock size={18} className="text-accent-cyan" />
-                  <h3 className="text-xl font-bold tracking-tight text-text-primary">Your Recent Searches</h3>
+                  <h3 className="text-lg font-bold tracking-tight text-text-primary">Your Recent Searches</h3>
                   <ComplexityBadge type="ops" value="O(1)" color="cyan" />
                 </div>
                 <div className="flex flex-wrap gap-2.5">
@@ -219,15 +284,15 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 3. Features Section */}
-        <section className="py-24 border-t border-white/5">
+        {/* 3. Features Section with upgraded visual cards */}
+        <section className="py-16 border-t border-white/5">
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="text-4xl md:text-5xl font-bold tracking-tight text-center mb-16 gradient-text"
+            transition={{ delay: 0.5 }}
+            className="text-3xl md:text-4xl font-bold tracking-tight text-center mb-10 gradient-text"
           >
-            Explore All Features
+            Explore Features
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -242,8 +307,17 @@ const HomePage = () => {
                   className="h-full"
                 >
                   <Link to={feature.path} className="block h-full">
-                    <div className="glass-card-hover p-8 min-h-[180px] h-full flex flex-col justify-between transition-all duration-300">
-                      <div>
+                    <div
+                      className="glass-card rounded-3xl p-8 min-h-[180px] h-full flex flex-col justify-between transition-all duration-300 border border-white/10 shadow-xl backdrop-blur hover:-translate-y-1.5 hover:border-white/20 relative overflow-hidden group"
+                      style={{
+                        borderTop: '3px solid ' + feature.color,
+                        boxShadow: `0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 30px ${feature.color}05`
+                      }}
+                    >
+                      {/* Subtle hover overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                      
+                      <div className="relative z-10">
                         <div className="flex items-start justify-between mb-6">
                           <div
                             className="w-12 h-12 rounded-xl flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
@@ -277,20 +351,27 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 4. About Section */}
-        <section className="py-24 border-t border-white/5 max-w-4xl mx-auto w-full">
-          <div className="glass-card p-10 shadow-2xl">
-            <h4 className="text-2xl font-bold tracking-tight text-text-primary mb-4 flex items-center gap-2">
-              📚 About This Platform
-            </h4>
-            <p className="text-base text-text-secondary leading-relaxed mb-6">
+        {/* 4. About Section fully centered and premium */}
+        <section className="py-16 border-t border-white/5 max-w-5xl mx-auto w-full">
+          <motion.h2
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-3xl md:text-4xl font-bold tracking-tight text-center mb-10 gradient-text"
+          >
+            About Platform
+          </motion.h2>
+
+          <div className="glass-card rounded-3xl p-10 shadow-2xl flex flex-col items-center text-center backdrop-blur relative overflow-hidden">
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-accent-blue/5 rounded-full blur-2xl pointer-events-none" />
+            <p className="text-lg text-text-secondary leading-relaxed mb-8 max-w-3xl">
               This platform demonstrates 5 core Data Structures & Algorithms working together in a real-world search engine.
-              Every search query triggers: <span className="font-mono text-accent-blue">Trie.getSuggestions()</span>,{' '}
-              <span className="font-mono text-accent-purple">HashMap.increment()</span>,{' '}
-              <span className="font-mono text-warning">MaxHeap.updateScore()</span>, and{' '}
-              <span className="font-mono text-accent-cyan">LRUCache.put()</span> — all in real time.
+              Every search query triggers: <span className="font-mono text-accent-blue font-semibold">Trie.getSuggestions()</span>,{' '}
+              <span className="font-mono text-accent-purple font-semibold">HashMap.increment()</span>,{' '}
+              <span className="font-mono text-warning font-semibold">MaxHeap.updateScore()</span>, and{' '}
+              <span className="font-mono text-accent-cyan font-semibold">LRUCache.put()</span> — all in real time.
             </p>
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap justify-center gap-3">
               <ComplexityBadge type="time" value="O(L) Trie" color="blue" />
               <ComplexityBadge type="time" value="O(log N) Heap" color="amber" />
               <ComplexityBadge type="time" value="O(1) LRU" color="cyan" />
