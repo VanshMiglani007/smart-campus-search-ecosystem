@@ -15,28 +15,152 @@ import SearchHistoryPage from './pages/SearchHistoryPage';
 import TrendingPage from './pages/TrendingPage';
 import TypoCorrectionPage from './pages/TypoCorrectionPage';
 
+import { useState } from 'react';
+import { Mail, Lock, X, CheckCircle2 } from 'lucide-react';
+import Footer from './components/Footer';
+
+function LockedConsole({ title, subtitle }) {
+  const { setShowLoginModal } = useSearch();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        maxWidth: '560px',
+        margin: '80px auto',
+        padding: '48px 32px',
+        borderRadius: '24px',
+        background: 'rgba(255, 255, 255, 0.02)',
+        border: '1px solid rgba(255, 255, 255, 0.07)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        textAlign: 'center',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* Animated Lock Icon */}
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '20px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '28px',
+          boxShadow: '0 8px 32px rgba(239, 68, 68, 0.15)',
+        }}
+      >
+        <Lock size={28} color="#ef4444" />
+      </motion.div>
+
+      <h2
+        style={{
+          fontFamily: 'Syne, sans-serif',
+          fontSize: '26px',
+          fontWeight: 800,
+          color: '#f1f5f9',
+          marginBottom: '12px',
+        }}
+      >
+        {title}
+      </h2>
+
+      <p
+        style={{
+          fontSize: '14px',
+          color: '#94a3b8',
+          lineHeight: 1.6,
+          marginBottom: '32px',
+          maxWidth: '420px',
+        }}
+      >
+        {subtitle}
+      </p>
+
+      <button
+        onClick={() => setShowLoginModal(true)}
+        style={{
+          padding: '14px 28px',
+          borderRadius: '12px',
+          background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
+          color: 'white',
+          border: 'none',
+          fontSize: '14px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(79, 142, 247, 0.2)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          transition: 'all 0.2s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'scale(1.03) translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 12px 30px rgba(79, 142, 247, 0.35)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'scale(1) translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 142, 247, 0.2)';
+        }}
+      >
+        ⚡ Unlock Admin Console
+      </button>
+    </motion.div>
+  );
+}
+
 function AnimatedRoutes() {
+  const { user } = useSearch();
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/autocomplete" element={<AutocompletePage />} />
-        <Route path="/trie-visualizer" element={<TrieVisualizerPage />} />
-        <Route path="/performance" element={<PerformancePage />} />
-        <Route path="/analytics" element={<AnalyticsDashboard />} />
-        <Route path="/history" element={<SearchHistoryPage />} />
-        <Route path="/trending" element={<TrendingPage />} />
-        <Route path="/typo" element={<TypoCorrectionPage />} />
+        
+        <Route path="/autocomplete" element={
+          user ? <AutocompletePage /> : <LockedConsole title="Autocomplete Sandbox Locked" subtitle="Authenticate as Admin to run live prefix search queries across the campus trie index." />
+        } />
+        
+        <Route path="/trie-visualizer" element={
+          user ? <TrieVisualizerPage /> : <LockedConsole title="Trie Visualizer Locked" subtitle="Authenticate as Admin to observe real-time prefix trie branch expansions and character node layouts." />
+        } />
+        
+        <Route path="/performance" element={
+          user ? <PerformancePage /> : <LockedConsole title="Performance Lab Locked" subtitle="Authenticate as Admin to execute linear lookup vs Trie search benchmark analytics." />
+        } />
+        
+        <Route path="/analytics" element={
+          user ? <AnalyticsDashboard /> : <LockedConsole title="Analytics Console Locked" subtitle="Authenticate as Admin to display query volume, trending frequencies, and heap rankings." />
+        } />
+        
+        <Route path="/history" element={
+          user ? <SearchHistoryPage /> : <LockedConsole title="LRU Eviction History Locked" subtitle="Authenticate as Admin to interact with linear cache list representations and live eviction tracking." />
+        } />
+        
+        <Route path="/trending" element={
+          user ? <TrendingPage /> : <LockedConsole title="MaxHeap Rankings Locked" subtitle="Authenticate as Admin to manage decay indices and global search frequency queues." />
+        } />
+        
+        <Route path="/typo" element={
+          user ? <TypoCorrectionPage /> : <LockedConsole title="Typo Correction Lab Locked" subtitle="Authenticate as Admin to process fuzzy string distance matching metrics." />
+        } />
       </Routes>
     </AnimatePresence>
   );
 }
-
-import { useState } from 'react';
-import { Mail, Lock, X, CheckCircle2 } from 'lucide-react';
-import Footer from './components/Footer';
 
 function AppContent() {
   const { lastOperation, showLoginModal, setShowLoginModal, setUser } = useSearch();
