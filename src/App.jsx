@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SearchProvider, useSearch } from './context/SearchContext';
 
 import Navbar from './components/Navbar';
@@ -214,7 +214,7 @@ function AppContent() {
                 </div>
 
                 <button type="submit" style={{ width: '100%', padding: '11px', borderRadius: '12px', background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)', color: 'white', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '8px', transition: 'opacity 0.2s' }}>
-                  Sign In
+                  Unlock Console
                 </button>
               </form>
 

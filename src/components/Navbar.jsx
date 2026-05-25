@@ -267,7 +267,7 @@ const Navbar = () => {
               onMouseEnter={e => { e.currentTarget.style.opacity = 0.9; }}
               onMouseLeave={e => { e.currentTarget.style.opacity = 1; }}
             >
-              <LogIn size={13} /> Sign In
+              <Lock size={13} /> Admin Console
             </button>
           )}
 
