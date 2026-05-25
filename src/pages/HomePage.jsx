@@ -340,44 +340,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ── About Platform ── */}
-      <section
-        style={{
-          padding: '48px 32px',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.02)',
-          textAlign: 'center',
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: 'Syne, sans-serif',
-            fontSize: 'clamp(20px, 2.5vw, 28px)',
-            fontWeight: 700,
-            marginBottom: '12px',
-          }}
-        >
-          <span className="gradient-text">About Platform</span>
-        </h2>
-
-        <p style={{ color: '#94a3b8', marginBottom: '24px', fontSize: '15px' }}>
-          Real DSA ecosystem built for campus intelligence.
-        </p>
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <ComplexityBadge value="O(L) Trie" />
-          <ComplexityBadge value="O(logN) Heap" />
-          <ComplexityBadge value="O(1) LRU" />
-        </div>
-      </section>
     </motion.div>
   );
 };

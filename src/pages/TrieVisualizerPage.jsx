@@ -218,6 +218,7 @@ function TrieVisualizerInner() {
   const [deleteWord, setDeleteWord] = useState('');
   const [prefixWord, setPrefixWord] = useState('');
   const [allWords, setAllWords] = useState(() => localTrie.getAllWords());
+  const [isLocked, setIsLocked] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [lastOp, setLastOp] = useState({ type: 'INIT', word: '', time: '' });
   const [prefixResults, setPrefixResults] = useState([]);
@@ -425,6 +426,33 @@ function TrieVisualizerInner() {
 
         {/* React Flow Canvas */}
         <div style={{ flex: 1, minWidth: '0', height: '680px', borderRadius: '20px', overflow: 'hidden', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.09)', position: 'relative' }}>
+          
+          {/* Floating Lock Toggle */}
+          <button
+            onClick={() => setIsLocked(!isLocked)}
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '16px',
+              zIndex: 10,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              background: isLocked ? 'rgba(239, 68, 68, 0.15)' : 'rgba(0, 212, 170, 0.15)',
+              border: isLocked ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(0, 212, 170, 0.3)',
+              color: isLocked ? '#ef4444' : '#00d4aa',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              transition: 'all 0.2s',
+            }}
+          >
+            {isLocked ? '🔒 Screen Locked' : '🔓 Screen Unlocked'}
+          </button>
+
           <ReactFlow
             key={`trie-flow-${allWords.length}-${lastOp.type}`}
             nodes={nodes}
@@ -437,9 +465,14 @@ function TrieVisualizerInner() {
             minZoom={0.2}
             maxZoom={2.5}
             attributionPosition="bottom-left"
+            panOnDrag={!isLocked}
+            zoomOnScroll={!isLocked}
+            zoomOnDoubleClick={!isLocked}
+            nodesDraggable={!isLocked}
+            nodesConnectable={false}
           >
             <Background color="rgba(255,255,255,0.025)" gap={24} />
-            <Controls />
+            <Controls showInteractive={false} />
             <MiniMap
               nodeColor={node => {
                 if (node.data?.isHighlighted) return '#4f8ef7';

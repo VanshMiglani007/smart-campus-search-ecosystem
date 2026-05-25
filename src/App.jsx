@@ -34,6 +34,8 @@ function AnimatedRoutes() {
   );
 }
 
+import Footer from './components/Footer';
+
 function AppContent() {
   const { lastOperation } = useSearch();
 
@@ -61,15 +63,22 @@ function AppContent() {
           flex: 1,
           width: '100%',
           paddingTop: '70px',      /* exact navbar height */
-          paddingBottom: '80px',   /* clear algorithm panel */
+          paddingBottom: '40px',   /* space before footer */
           boxSizing: 'border-box',
           overflowX: 'hidden',
           position: 'relative',
           zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <AnimatedRoutes />
+        <div style={{ flex: 1 }}>
+          <AnimatedRoutes />
+        </div>
       </main>
+
+      {/* Global Footer */}
+      <Footer />
 
       {/* Algorithm Panel — floating bottom-right */}
       <AlgorithmPanel

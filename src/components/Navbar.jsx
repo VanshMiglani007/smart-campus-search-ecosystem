@@ -64,30 +64,16 @@ const Navbar = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
             textDecoration: 'none',
             flexShrink: 0,
           }}
         >
-          <div
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Search size={16} color="white" />
-          </div>
           <span
             style={{
               fontFamily: 'Syne, sans-serif',
-              fontWeight: 700,
-              fontSize: '18px',
+              fontWeight: 800,
+              fontSize: '20px',
+              letterSpacing: '-0.02em',
               background: 'linear-gradient(135deg, #4f8ef7 0%, #00d4aa 50%, #a855f7 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
