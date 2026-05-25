@@ -10,8 +10,8 @@ import {
   useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { GitBranch, Plus, Search, Trash2, Filter, BookOpen, X } from 'lucide-react';
-import { Trie } from '../algorithms/Trie';
+import { GitBranch, Plus, Search, Trash2, Filter, BookOpen, X, Shuffle, RefreshCw } from 'lucide-react';
+import { Trie, TrieNode } from '../algorithms/Trie';
 import ComplexityBadge from '../components/ComplexityBadge';
 
 // ── Custom Node renderer ──
@@ -128,12 +128,21 @@ function buildFlowGraph(trieData, highlightedIds = [], newNodeIds = []) {
     return Math.max(MIN_H_GAP, total);
   }
 
-  // Assign x positions based on subtree widths
+  // Assign x positions based on subtree widths with premium organic branch layout
   function assignPos(id, left, depth) {
     const children = childrenMap[id] || [];
     const width = subtreeWidth(id);
-    const x = left + width / 2;
-    const y = depth * VERTICAL_GAP;
+    
+    // Add creative organic curves (shuffling coordinates slightly) so nodes branch out naturally
+    // rather than looking rigidly grid-aligned!
+    const charCode = id.charCodeAt(id.length - 1) || 0;
+    const organicOffset = Math.sin(depth * 1.6 + charCode) * 16;
+    const x = left + width / 2 + organicOffset;
+    
+    // Vertical wavy variance
+    const verticalOffset = Math.cos(left * 0.05) * 5;
+    const y = depth * VERTICAL_GAP + verticalOffset;
+    
     posMap[id] = { x, y };
 
     let childLeft = left;
@@ -180,6 +189,14 @@ function buildFlowGraph(trieData, highlightedIds = [], newNodeIds = []) {
 
 // ── Default words ──
 const DEFAULT_WORDS = ['DAA', 'Data', 'Database', 'DBMS', 'Exam', 'Events'];
+
+// ── Cool words pool for Shuffling ──
+const COOL_WORDS_POOL = [
+  'Campus', 'Search', 'Trie', 'Smart', 'Vansh', 'Coding', 'Hacker', 
+  'Matrix', 'Data', 'Ecosystem', 'Intelligence', 'Dynamic', 'Visual', 
+  'Nodes', 'Graph', 'Algorithms', 'DSA', 'Logic', 'Code', 'Binary',
+  'Tree', 'Array', 'Cache', 'Heap', 'Stack', 'Queue', 'Hash', 'Design'
+];
 
 // ── Inner component (needs ReactFlowProvider above) ──
 function TrieVisualizerInner() {
@@ -277,6 +294,24 @@ function TrieVisualizerInner() {
     setStatusMsg(`🗑️ Removed "${word}"`);
   };
 
+  const handleShuffle = () => {
+    // Pick 6 random distinct words from the cool pool
+    const shuffled = [...COOL_WORDS_POOL].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 6);
+    
+    // Clear and rebuild localTrie
+    localTrie.root = new TrieNode('');
+    localTrie.root.id = 'trie-root';
+    localTrie.wordCount = 0;
+    localTrie.nodeCount = 1;
+    
+    selected.forEach(w => localTrie.insert(w, 'demo', 10));
+    
+    refreshTree();
+    setLastOp({ type: 'SHUFFLE', word: selected.slice(0, 3).join(', ') + '...', time: 'O(N×L)' });
+    setStatusMsg(`🔀 Shuffled words and reconstructed organic branches!`);
+  };
+
   // Shared styles
   const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '16px', padding: '18px', marginBottom: '0' };
   const lbl = { display: 'block', fontSize: '11px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px', fontWeight: 600 };
@@ -351,8 +386,31 @@ function TrieVisualizerInner() {
           </div>
 
           <div style={card}>
-            <label style={lbl}>Words ({allWords.length})</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label style={{ ...lbl, marginBottom: 0 }}>Words ({allWords.length})</label>
+              <button
+                onClick={handleShuffle}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(79,142,247,0.1)',
+                  border: '1px solid rgba(79,142,247,0.3)',
+                  color: '#4f8ef7',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(79,142,247,0.2)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(79,142,247,0.1)'; }}
+              >
+                <Shuffle size={10} /> Shuffle Tree
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '120px', overflowY: 'auto', marginBottom: '4px' }}>
               {allWords.map(w => (
                 <span key={w.word} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '3px 8px', borderRadius: '999px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#94a3b8' }}>
                   {w.word}
@@ -368,6 +426,7 @@ function TrieVisualizerInner() {
         {/* React Flow Canvas */}
         <div style={{ flex: 1, minWidth: '0', height: '680px', borderRadius: '20px', overflow: 'hidden', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.09)', position: 'relative' }}>
           <ReactFlow
+            key={`trie-flow-${allWords.length}-${lastOp.type}`}
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
