@@ -222,6 +222,10 @@ export function SearchProvider({ children }) {
     }
   }, []);
 
+  // ── Authentication State ──
+  const [user, setUser] = useState(() => localStorage.getItem('campusiq_user') || '');
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
   // ── Context value ──
   const value = {
     // DSA instances (via refs)
@@ -241,6 +245,12 @@ export function SearchProvider({ children }) {
     trendingItems,
     frequencyData,
     lastOperation,
+
+    // Auth state
+    user,
+    setUser,
+    showLoginModal,
+    setShowLoginModal,
   };
 
   return (

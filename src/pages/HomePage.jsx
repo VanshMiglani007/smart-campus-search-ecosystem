@@ -82,11 +82,10 @@ const quickCategories = [
   { name: 'Faculty', category: 'faculty' },
   { name: 'Hostel', category: 'hostel' },
   { name: 'Library', category: 'library' },
-  { name: 'Courses', category: 'courses' },
 ];
 
 const HomePage = () => {
-  const { trendingItems, recordSelection } = useSearch();
+  const { trendingItems, recordSelection, user, setShowLoginModal } = useSearch();
   const navigate = useNavigate();
 
   const handleSelectSuggestion = (word) => {
@@ -94,6 +93,172 @@ const HomePage = () => {
     navigate('/autocomplete', { state: { query: word } });
   };
 
+  // ── Conditional Landing Screen when NOT Logged In ──
+  if (!user) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          width: '100%',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '60px 24px 80px',
+          boxSizing: 'border-box',
+          textAlign: 'center',
+        }}
+      >
+        {/* Creative Headline */}
+        <h1
+          style={{
+            fontFamily: 'Syne, sans-serif',
+            fontSize: 'clamp(32px, 6vw, 68px)',
+            fontWeight: 800,
+            lineHeight: 1.15,
+            marginBottom: '24px',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Unlock Symmetrical <br />
+          <span className="gradient-text">Campus Search Intelligence</span>
+        </h1>
+
+        <p
+          style={{
+            color: '#94a3b8',
+            fontSize: 'clamp(15px, 2vw, 18px)',
+            marginBottom: '40px',
+            maxWidth: '620px',
+            margin: '0 auto 40px',
+            lineHeight: 1.6,
+          }}
+        >
+          An interactive, high-performance DSA visualization console. Witness live Prefix Tries, dynamic trending MaxHeaps, and LRU Cache structures working concurrently.
+        </p>
+
+        {/* Dynamic CTA Button */}
+        <button
+          onClick={() => setShowLoginModal(true)}
+          style={{
+            padding: '16px 36px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
+            color: 'white',
+            border: 'none',
+            fontSize: '15px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 8px 32px rgba(79, 142, 247, 0.25)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '72px',
+            transition: 'all 0.25s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.04) translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 12px 40px rgba(79, 142, 247, 0.4)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1) translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(79, 142, 247, 0.25)';
+          }}
+        >
+          ⚡ Enter Admin Console
+        </button>
+
+        {/* Feature/Algorithm Highlights Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '24px',
+            textAlign: 'left',
+          }}
+        >
+          {[
+            {
+              title: 'Trie Autocomplete',
+              desc: 'Queries in O(L) time. Traverses standard character nodes and performs rapid DFS to retrieve instant prefix suggestions.',
+              icon: GitBranch,
+              color: '#00d4aa',
+            },
+            {
+              title: 'MaxHeap Trending',
+              desc: 'Orders global autocomplete queries dynamically. Applies recency-decay algorithms to keep ranking lists active.',
+              icon: TrendingUp,
+              color: '#ef4444',
+            },
+            {
+              title: 'LRU Cache History',
+              desc: 'Saves search history in O(1) hash maps. Automatically evicts the least recently used keys when size limits are reached.',
+              icon: Clock,
+              color: '#4f8ef7',
+            },
+          ].map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * idx }}
+                style={{
+                  padding: '30px',
+                  borderRadius: '24px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderTop: `2px solid ${item.color}`,
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    background: `${item.color}15`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '20px',
+                  }}
+                >
+                  <Icon size={20} color={item.color} />
+                </div>
+                <h3
+                  style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: '18px',
+                    fontWeight: 700,
+                    color: '#f1f5f9',
+                    marginBottom: '10px',
+                  }}
+                >
+                  {item.title}
+                </h3>
+                <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.6, margin: 0 }}>
+                  {item.desc}
+                </p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── Standard Dashboard Screen when LOGGED IN ──
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -108,7 +273,7 @@ const HomePage = () => {
         boxSizing: 'border-box',
       }}
     >
-      {/* ── Hero Section ── */}
+      {/* Hero Section */}
       <section
         style={{
           display: 'flex',
@@ -118,7 +283,6 @@ const HomePage = () => {
           paddingBottom: '64px',
         }}
       >
-        {/* Main heading */}
         <h1
           style={{
             fontFamily: 'Syne, sans-serif',
@@ -191,7 +355,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ── Trending Now ── */}
+      {/* Trending Now */}
       <section style={{ marginBottom: '64px' }}>
         <h2
           style={{
@@ -207,7 +371,7 @@ const HomePage = () => {
         <TrendingPanel items={trendingItems} />
       </section>
 
-      {/* ── Explore Features ── */}
+      {/* Explore Features */}
       <section style={{ marginBottom: '64px' }}>
         <h2
           style={{
@@ -339,7 +503,6 @@ const HomePage = () => {
           })}
         </div>
       </section>
-
     </motion.div>
   );
 };
