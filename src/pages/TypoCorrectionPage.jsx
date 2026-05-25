@@ -37,7 +37,7 @@ const TypoCorrectionPage = () => {
     }
   };
 
-  const examples = ['chatgtp', 'plcement', 'hostal', 'exma', 'labriry'];
+  const examples = ['techothon', 'plcement', 'hostal', 'exma', 'labriry'];
 
   return (
     <motion.div

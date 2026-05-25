@@ -127,23 +127,59 @@ export function findClosestMatch(input, wordList, threshold = 2) {
   let bestDistance = Infinity;
   let bestResult = null;
 
+  const cleanInput = input.trim().toLowerCase();
+
+  // 1. Direct Case-Insensitive Comparison (Framer-friendly)
   for (const word of wordList) {
-    const result = levenshtein(input, word);
+    const result = levenshtein(cleanInput, word.toLowerCase());
+    const realResult = levenshtein(input.trim(), word);
 
     if (result.distance < bestDistance) {
       bestDistance = result.distance;
       bestMatch = word;
-      bestResult = result;
+      bestResult = realResult;
     }
 
-    // Perfect match found, no need to continue
     if (bestDistance === 0) break;
   }
 
+  // If a full string matches within the given threshold, return it directly!
   if (bestDistance <= threshold && bestMatch) {
     return {
       word: bestMatch,
-      distance: bestDistance,
+      distance: bestResult.distance,
+      matrix: bestResult.matrix,
+      operations: bestResult.operations,
+    };
+  }
+
+  // 2. Token-wise Fallback (e.g., matching 'plcement' against ['Placement', 'Portal'])
+  bestMatch = null;
+  bestDistance = Infinity;
+  bestResult = null;
+
+  for (const word of wordList) {
+    // Tokenize correct phrases by spaces or hyphens
+    const tokens = word.split(/[\s-]+/);
+
+    for (const token of tokens) {
+      if (token.length < 3) continue; // skip minor words like 'or', 'in', 'AI'
+
+      const result = levenshtein(cleanInput, token.toLowerCase());
+
+      if (result.distance < bestDistance) {
+        bestDistance = result.distance;
+        bestMatch = word;
+        bestResult = levenshtein(input.trim(), word); // return matrix of the whole phrase
+      }
+    }
+  }
+
+  // Tight threshold (<= 2 edits) for single token comparisons
+  if (bestDistance <= 2 && bestMatch) {
+    return {
+      word: bestMatch,
+      distance: bestResult.distance,
       matrix: bestResult.matrix,
       operations: bestResult.operations,
     };
