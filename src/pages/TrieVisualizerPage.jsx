@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
@@ -13,35 +14,24 @@ import { GitBranch, Plus, Search, Trash2, Filter, BookOpen, X } from 'lucide-rea
 import { Trie } from '../algorithms/Trie';
 import ComplexityBadge from '../components/ComplexityBadge';
 
-// ── Custom Trie Node Component for React Flow ──
+// ── Custom Node renderer ──
 function TrieNodeComponent({ data }) {
-  const {
-    label,
-    isEndOfWord,
-    isHighlighted,
-    isNewlyInserted,
-    isDeleted,
-    frequency,
-    childCount,
-  } = data;
+  const { label, isEndOfWord, isHighlighted, isNewlyInserted, frequency } = data;
 
-  let borderColor = 'rgba(255,255,255,0.1)';
+  let borderColor = 'rgba(255,255,255,0.15)';
   let bgColor = 'rgba(17,17,24,0.95)';
   let shadow = 'none';
   let textColor = '#f1f5f9';
 
-  if (isDeleted) {
-    borderColor = 'rgba(239,68,68,0.6)';
-    bgColor = 'rgba(239,68,68,0.15)';
-    textColor = '#ef4444';
-  } else if (isNewlyInserted) {
-    borderColor = 'rgba(0,212,170,0.8)';
-    bgColor = 'rgba(0,212,170,0.15)';
-    shadow = '0 0 16px rgba(0,212,170,0.4)';
+  if (isNewlyInserted) {
+    borderColor = 'rgba(0,212,170,0.9)';
+    bgColor = 'rgba(0,212,170,0.18)';
+    shadow = '0 0 18px rgba(0,212,170,0.5)';
   } else if (isHighlighted) {
-    borderColor = 'rgba(79,142,247,0.8)';
-    bgColor = 'rgba(79,142,247,0.15)';
-    shadow = '0 0 20px rgba(79,142,247,0.5)';
+    borderColor = 'rgba(79,142,247,0.9)';
+    bgColor = 'rgba(79,142,247,0.18)';
+    shadow = '0 0 18px rgba(79,142,247,0.5)';
+    textColor = '#4f8ef7';
   } else if (isEndOfWord) {
     borderColor = 'rgba(0,212,170,0.5)';
     bgColor = 'rgba(0,212,170,0.08)';
@@ -63,7 +53,6 @@ function TrieNodeComponent({ data }) {
         cursor: 'pointer',
         position: 'relative',
       }}
-      title={`Char: ${label}\nisEnd: ${isEndOfWord}\nChildren: ${childCount}\n${isEndOfWord ? `Freq: ${frequency}` : ''}`}
     >
       <span
         style={{
@@ -75,7 +64,7 @@ function TrieNodeComponent({ data }) {
       >
         {label === 'ROOT' ? '⊙' : label}
       </span>
-      {isEndOfWord && !isDeleted && (
+      {isEndOfWord && (
         <div
           style={{
             position: 'absolute',
@@ -91,11 +80,9 @@ function TrieNodeComponent({ data }) {
             justifyContent: 'center',
             fontSize: 8,
             fontWeight: 800,
-            boxShadow: '0 0 8px rgba(0,212,170,0.4)',
           }}
-          title={`Search Frequency: ${frequency}`}
         >
-          {frequency}
+          {frequency || '✓'}
         </div>
       )}
     </div>
@@ -104,116 +91,111 @@ function TrieNodeComponent({ data }) {
 
 const nodeTypes = { trieNode: TrieNodeComponent };
 
-/**
- * Perform custom layout of tree nodes
- * Returns { nodes, edges } compatible with React Flow
- */
-function layoutTrieNodes(trieNodes, highlightedIds = [], newNodeIds = []) {
-  const flowNodes = [];
-  const flowEdges = [];
+// ── Layout: convert Trie data to React Flow nodes/edges ──
+function buildFlowGraph(trieData, highlightedIds = [], newNodeIds = []) {
+  const { nodes: rawNodes, edges: rawEdges } = trieData;
+  if (!rawNodes || rawNodes.length === 0) return { nodes: [], edges: [] };
+
   const highlightSet = new Set(highlightedIds);
   const newSet = new Set(newNodeIds);
 
-  // Group nodes by levels
-  const levels = {};
-  trieNodes.forEach((node) => {
-    if (!levels[node.level]) {
-      levels[node.level] = [];
-    }
-    levels[node.level].push(node);
+  // Build adjacency: parentId → [childId...]
+  const childrenMap = {};
+  const parentMap = {};
+  rawEdges.forEach(e => {
+    parentMap[e.target] = e.source;
+    if (!childrenMap[e.source]) childrenMap[e.source] = [];
+    childrenMap[e.source].push(e.target);
   });
 
-  const levelKeys = Object.keys(levels).sort((a, b) => Number(a) - Number(b));
-  const verticalSpacing = 95;
-  const initialHorizontalSpacing = 420;
+  // Find root (node with no parent)
+  const rootNode = rawNodes.find(n => !parentMap[n.id]);
+  if (!rootNode) return { nodes: [], edges: [] };
 
-  levelKeys.forEach((lvlStr) => {
-    const level = Number(lvlStr);
-    const nodesInLevel = levels[level];
-    const horizontalSpacing = initialHorizontalSpacing / Math.pow(1.5, level);
+  // Build a map for quick lookup
+  const nodeById = {};
+  rawNodes.forEach(n => { nodeById[n.id] = n; });
 
-    // Sort nodes to maintain visual child order matching left-to-right parent structure
-    nodesInLevel.sort((a, b) => a.path.localeCompare(b.path));
+  const VERTICAL_GAP = 90;
+  const MIN_H_GAP = 68; // minimum horizontal gap between sibling subtrees
+  const posMap = {};
 
-    const totalWidth = (nodesInLevel.length - 1) * horizontalSpacing;
+  // Post-order: compute the width of each subtree
+  function subtreeWidth(id) {
+    const children = childrenMap[id] || [];
+    if (children.length === 0) return MIN_H_GAP;
+    const total = children.reduce((sum, cid) => sum + subtreeWidth(cid), 0);
+    return Math.max(MIN_H_GAP, total);
+  }
 
-    nodesInLevel.forEach((node, idx) => {
-      let x = idx * horizontalSpacing - totalWidth / 2;
+  // Assign x positions based on subtree widths
+  function assignPos(id, left, depth) {
+    const children = childrenMap[id] || [];
+    const width = subtreeWidth(id);
+    const x = left + width / 2;
+    const y = depth * VERTICAL_GAP;
+    posMap[id] = { x, y };
 
-      // Handle custom alignment based on parent position
-      if (level > 0) {
-        const parentId = node.parentId;
-        const parentNode = trieNodes.find((n) => n.id === parentId);
-        if (parentNode) {
-          const parentFlow = flowNodes.find((fn) => fn.id === parentId);
-          if (parentFlow) {
-            const siblings = nodesInLevel.filter((n) => n.parentId === parentId);
-            const sibIdx = siblings.findIndex((s) => s.id === node.id);
-            const sibSpacing = 50;
-            const sibTotal = (siblings.length - 1) * sibSpacing;
-            x = parentFlow.position.x + sibIdx * sibSpacing - sibTotal / 2;
-          }
-        }
-      }
-
-      flowNodes.push({
-        id: node.id,
-        type: 'trieNode',
-        position: { x, y: level * verticalSpacing },
-        data: {
-          label: node.char,
-          isEndOfWord: node.isEndOfWord,
-          isHighlighted: highlightSet.has(node.id),
-          isNewlyInserted: newSet.has(node.id),
-          isDeleted: node.isDeleted,
-          frequency: node.frequency,
-          childCount: node.childCount,
-        },
-      });
+    let childLeft = left;
+    children.forEach(cid => {
+      const cw = subtreeWidth(cid);
+      assignPos(cid, childLeft, depth + 1);
+      childLeft += cw;
     });
-  });
+  }
 
-  // Create connections
-  trieNodes.forEach((node) => {
-    if (node.parentId) {
-      const isConnectionHighlighted =
-        highlightSet.has(node.id) && highlightSet.has(node.parentId);
-      flowEdges.push({
-        id: `e-${node.parentId}-${node.id}`,
-        source: node.parentId,
-        target: node.id,
-        style: {
-          stroke: isConnectionHighlighted
-            ? '#4f8ef7'
-            : 'rgba(255,255,255,0.15)',
-          strokeWidth: isConnectionHighlighted ? 2.5 : 1.5,
-        },
-        animated: isConnectionHighlighted,
-      });
-    }
+  const totalW = subtreeWidth(rootNode.id);
+  assignPos(rootNode.id, -totalW / 2, 0);
+
+  const flowNodes = rawNodes.map(node => ({
+    id: node.id,
+    type: 'trieNode',
+    position: posMap[node.id] || { x: 0, y: 0 },
+    data: {
+      label: node.char === '' ? 'ROOT' : (node.char || 'ROOT'),
+      isEndOfWord: node.isEndOfWord,
+      isHighlighted: highlightSet.has(node.id),
+      isNewlyInserted: newSet.has(node.id),
+      frequency: node.frequency,
+      childCount: node.childCount,
+    },
+  }));
+
+  const flowEdges = rawEdges.map(e => {
+    const isHL = highlightSet.has(e.source) && highlightSet.has(e.target);
+    return {
+      id: `e-${e.source}-${e.target}`,
+      source: e.source,
+      target: e.target,
+      style: {
+        stroke: isHL ? '#4f8ef7' : 'rgba(255,255,255,0.18)',
+        strokeWidth: isHL ? 2.5 : 1.5,
+      },
+      animated: isHL,
+    };
   });
 
   return { nodes: flowNodes, edges: flowEdges };
 }
 
-// ── Default words to pre-insert ──
+// ── Default words ──
 const DEFAULT_WORDS = ['DAA', 'Data', 'Database', 'DBMS', 'Exam', 'Events'];
 
-const TrieVisualizerPage = () => {
-  // Local Trie for this visualizer (separate from global context)
+// ── Inner component (needs ReactFlowProvider above) ──
+function TrieVisualizerInner() {
   const [localTrie] = useState(() => {
     const t = new Trie();
-    DEFAULT_WORDS.forEach((w) => t.insert(w, 'demo', 10));
+    DEFAULT_WORDS.forEach(w => t.insert(w, 'demo', 10));
     return t;
   });
 
-  const initialLayout = useMemo(() => {
-    const trieData = localTrie.getAllNodes();
-    return layoutTrieNodes(trieData, [], []);
+  const initialFlow = useMemo(() => {
+    return buildFlowGraph(localTrie.getAllNodes());
   }, [localTrie]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(() => initialLayout.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(() => initialLayout.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges);
+
   const [insertWord, setInsertWord] = useState('');
   const [searchWord, setSearchWord] = useState('');
   const [deleteWord, setDeleteWord] = useState('');
@@ -223,376 +205,283 @@ const TrieVisualizerPage = () => {
   const [lastOp, setLastOp] = useState({ type: 'INIT', word: '', time: '' });
   const [prefixResults, setPrefixResults] = useState([]);
 
-  // Refresh the visual tree from the Trie data
-  const refreshTree = useCallback(
-    (highlighted = [], newNodes = []) => {
-      const trieData = localTrie.getAllNodes();
-      const { nodes: flowNodes, edges: flowEdges } = layoutTrieNodes(
-        trieData,
-        highlighted,
-        newNodes
-      );
-      setNodes(flowNodes);
-      setEdges(flowEdges);
-      setAllWords(localTrie.getAllWords());
-    },
-    [localTrie, setNodes, setEdges]
-  );
+  const refreshTree = useCallback((highlighted = [], newNodes = []) => {
+    const trieData = localTrie.getAllNodes();
+    const { nodes: fn, edges: fe } = buildFlowGraph(trieData, highlighted, newNodes);
+    setNodes(fn);
+    setEdges(fe);
+    setAllWords(localTrie.getAllWords());
+  }, [localTrie, setNodes, setEdges]);
 
-
-  // ── INSERT ──
   const handleInsert = () => {
     const word = insertWord.trim();
     if (!word) return;
-
     const start = performance.now();
     localTrie.insert(word, 'demo', 10);
     const elapsed = performance.now() - start;
-
     const path = localTrie.getTraversalPath(word);
     refreshTree([], path);
-
-    setLastOp({ type: 'INSERT', word, time: `O(L) = O(${word.length})` });
+    setLastOp({ type: 'INSERT', word, time: `O(${word.length})` });
     setStatusMsg(`✅ Inserted "${word}" — ${elapsed.toFixed(2)}ms`);
     setInsertWord('');
-
-    // Clear new-node highlight after animation
-    setTimeout(() => {
-      refreshTree();
-    }, 1500);
+    setTimeout(() => refreshTree(), 1500);
   };
 
-  // ── SEARCH ──
   const handleSearch = () => {
     const word = searchWord.trim();
     if (!word) return;
-
     const start = performance.now();
     const found = localTrie.search(word);
     const elapsed = performance.now() - start;
-
     const path = localTrie.getTraversalPath(word);
     refreshTree(path, []);
-
-    setLastOp({ type: 'SEARCH', word, time: `O(L) = O(${word.length})` });
-    setStatusMsg(
-      found
-        ? `✅ Found "${word}" — ${elapsed.toFixed(2)}ms`
-        : `❌ "${word}" not found — ${elapsed.toFixed(2)}ms`
-    );
+    setLastOp({ type: 'SEARCH', word, time: `O(${word.length})` });
+    setStatusMsg(found ? `✅ Found "${word}" — ${elapsed.toFixed(2)}ms` : `❌ "${word}" not found — ${elapsed.toFixed(2)}ms`);
     setSearchWord('');
-
-    setTimeout(() => {
-      refreshTree();
-    }, 2000);
+    setTimeout(() => refreshTree(), 2000);
   };
 
-  // ── DELETE ──
   const handleDelete = () => {
     const word = deleteWord.trim();
     if (!word) return;
-
     const start = performance.now();
     const deleted = localTrie.delete(word);
     const elapsed = performance.now() - start;
-
     if (deleted) {
       refreshTree();
-      setLastOp({ type: 'DELETE', word, time: `O(L) = O(${word.length})` });
+      setLastOp({ type: 'DELETE', word, time: `O(${word.length})` });
       setStatusMsg(`🗑️ Deleted "${word}" — ${elapsed.toFixed(2)}ms`);
     } else {
-      setStatusMsg(`❌ "${word}" not found — cannot delete`);
+      setStatusMsg(`❌ "${word}" not found`);
     }
     setDeleteWord('');
   };
 
-  // ── PREFIX SUGGESTIONS ──
   const handlePrefix = () => {
     const prefix = prefixWord.trim();
     if (!prefix) return;
-
     const start = performance.now();
     const results = localTrie.getSuggestions(prefix, 10);
     const elapsed = performance.now() - start;
-
     const path = localTrie.getTraversalPath(prefix);
     refreshTree(path, []);
     setPrefixResults(results);
-
-    setLastOp({ type: 'PREFIX', word: prefix, time: `O(L+K) = O(${prefix.length}+${results.length})` });
+    setLastOp({ type: 'PREFIX', word: prefix, time: `O(${prefix.length}+${results.length})` });
     setStatusMsg(`🔍 ${results.length} suggestions for "${prefix}" — ${elapsed.toFixed(2)}ms`);
-
-    setTimeout(() => {
-      refreshTree();
-    }, 3000);
+    setTimeout(() => refreshTree(), 3000);
   };
 
-  // ── Delete word from word list ──
   const handleRemoveWord = (word) => {
     localTrie.delete(word);
     refreshTree();
     setStatusMsg(`🗑️ Removed "${word}"`);
   };
 
+  // Shared styles
+  const card = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: '16px', padding: '18px', marginBottom: '0' };
+  const lbl = { display: 'block', fontSize: '11px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px', fontWeight: 600 };
+  const inp = { flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '8px 12px', fontSize: '13px', color: '#f1f5f9', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'DM Sans, sans-serif' };
+  const btn = (color) => ({ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '8px 14px', borderRadius: '10px', border: `1px solid ${color}40`, background: `${color}14`, color, fontSize: '13px', fontWeight: 500, cursor: 'pointer', flexShrink: 0 });
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen pt-28 pb-16 px-6"
+      style={{ width: '100%', maxWidth: '1280px', margin: '0 auto', padding: '40px 32px 80px', boxSizing: 'border-box' }}
     >
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-accent-cyan/10 flex items-center justify-center mx-auto mb-3">
-            <GitBranch size={28} className="text-accent-cyan" />
-          </div>
-          <h1 className="text-3xl font-bold gradient-text mb-1">Trie Visualizer</h1>
-          <p className="text-text-secondary text-sm">
-            Insert, search, delete and explore the Trie tree interactively
-          </p>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(0,212,170,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <GitBranch size={26} color="#00d4aa" />
         </div>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, background: 'linear-gradient(135deg, #4f8ef7 0%, #00d4aa 50%, #a855f7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', display: 'inline-block', marginBottom: '8px' }}>
+          Trie Visualizer
+        </h1>
+        <p style={{ color: '#94a3b8', fontSize: '14px' }}>Insert, search, delete and explore the Trie tree interactively</p>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* ── Left Panel: Controls ── */}
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
-            {/* Insert */}
-            <div className="glass-card p-4">
-              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Insert Word</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={insertWord}
-                  onChange={(e) => setInsertWord(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
-                  placeholder="e.g. ChatGPT"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-cyan/50 transition-colors"
-                />
-                <button
-                  onClick={handleInsert}
-                  className="px-3 py-2 rounded-lg bg-accent-cyan/20 text-accent-cyan text-sm font-medium hover:bg-accent-cyan/30 transition-colors flex items-center gap-1"
-                >
-                  <Plus size={14} /> Insert
-                </button>
-              </div>
+      {/* Main layout */}
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+        {/* Left controls */}
+        <div style={{ width: '260px', minWidth: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          <div style={card}>
+            <label style={lbl}>Insert Word</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" value={insertWord} onChange={e => setInsertWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleInsert()} placeholder="e.g. ChatGPT" style={inp} />
+              <button onClick={handleInsert} style={btn('#00d4aa')}><Plus size={13} /> Insert</button>
             </div>
+          </div>
 
-            {/* Search */}
-            <div className="glass-card p-4">
-              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Search Word</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchWord}
-                  onChange={(e) => setSearchWord(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="e.g. Data"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-blue/50 transition-colors"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="px-3 py-2 rounded-lg bg-accent-blue/20 text-accent-blue text-sm font-medium hover:bg-accent-blue/30 transition-colors flex items-center gap-1"
-                >
-                  <Search size={14} /> Search
-                </button>
-              </div>
+          <div style={card}>
+            <label style={lbl}>Search Word</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" value={searchWord} onChange={e => setSearchWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} placeholder="e.g. Data" style={inp} />
+              <button onClick={handleSearch} style={btn('#4f8ef7')}><Search size={13} /> Search</button>
             </div>
+          </div>
 
-            {/* Delete */}
-            <div className="glass-card p-4">
-              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Delete Word</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={deleteWord}
-                  onChange={(e) => setDeleteWord(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
-                  placeholder="e.g. DBMS"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-red-500/50 transition-colors"
-                />
-                <button
-                  onClick={handleDelete}
-                  className="px-3 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/30 transition-colors flex items-center gap-1"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              </div>
+          <div style={card}>
+            <label style={lbl}>Delete Word</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" value={deleteWord} onChange={e => setDeleteWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleDelete()} placeholder="e.g. DBMS" style={inp} />
+              <button onClick={handleDelete} style={btn('#ef4444')}><Trash2 size={13} /> Delete</button>
             </div>
+          </div>
 
-            {/* Prefix */}
-            <div className="glass-card p-4">
-              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">Find Prefix</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={prefixWord}
-                  onChange={(e) => setPrefixWord(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handlePrefix()}
-                  placeholder="e.g. Da"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent-purple/50 transition-colors"
-                />
-                <button
-                  onClick={handlePrefix}
-                  className="px-3 py-2 rounded-lg bg-accent-purple/20 text-accent-purple text-sm font-medium hover:bg-accent-purple/30 transition-colors flex items-center gap-1"
-                >
-                  <Filter size={14} /> Suggest
-                </button>
-              </div>
-              {/* Prefix results */}
-              {prefixResults.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {prefixResults.map((r, i) => (
-                    <div key={i} className="text-xs text-text-secondary flex justify-between px-1">
-                      <span>{r.word}</span>
-                      <span className="font-mono text-text-muted">freq: {r.frequency}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div style={card}>
+            <label style={lbl}>Find Prefix</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" value={prefixWord} onChange={e => setPrefixWord(e.target.value)} onKeyDown={e => e.key === 'Enter' && handlePrefix()} placeholder="e.g. Da" style={inp} />
+              <button onClick={handlePrefix} style={btn('#a855f7')}><Filter size={13} /> Find</button>
             </div>
-
-            {/* Word List */}
-            <div className="glass-card p-4">
-              <label className="text-xs text-text-muted uppercase tracking-wider mb-2 block">
-                Inserted Words ({allWords.length})
-              </label>
-              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                {allWords.map((w) => (
-                  <span
-                    key={w.word}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-white/5 border border-white/10 text-text-secondary"
-                  >
-                    {w.word}
-                    <button
-                      onClick={() => handleRemoveWord(w.word)}
-                      className="text-text-muted hover:text-red-400 transition-colors"
-                    >
-                      <X size={10} />
-                    </button>
-                  </span>
+            {prefixResults.length > 0 && (
+              <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {prefixResults.map((r, i) => (
+                  <div key={i} style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{r.word}</span>
+                    <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#475569' }}>×{r.frequency}</span>
+                  </div>
                 ))}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* ── Right Panel: React Flow Canvas ── */}
-          <div className="flex-1 min-h-[500px] lg:min-h-[600px] glass-card overflow-hidden">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              fitView
-              fitViewOptions={{ padding: 0.3 }}
-              minZoom={0.3}
-              maxZoom={2}
-              attributionPosition="bottom-left"
-            >
-              <Background color="rgba(255,255,255,0.03)" gap={20} />
-              <Controls />
-              <MiniMap
-                nodeColor={(node) => {
-                  if (node.data?.isHighlighted) return '#4f8ef7';
-                  if (node.data?.isNewlyInserted) return '#00d4aa';
-                  if (node.data?.isEndOfWord) return '#00d4aa';
-                  return '#1e1e2e';
-                }}
-                maskColor="rgba(10,10,15,0.8)"
-              />
-            </ReactFlow>
+          <div style={card}>
+            <label style={lbl}>Words ({allWords.length})</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+              {allWords.map(w => (
+                <span key={w.word} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '3px 8px', borderRadius: '999px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#94a3b8' }}>
+                  {w.word}
+                  <button onClick={() => handleRemoveWord(w.word)} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 0, display: 'flex', lineHeight: 1 }}>
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Bottom Info Bar */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-4 glass-card px-5 py-3 flex flex-wrap items-center gap-4 text-xs"
-        >
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted">Total nodes:</span>
-            <span className="font-mono text-accent-blue">{localTrie.nodeCount}</span>
-          </div>
-          <div className="w-px h-4 bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted">Total words:</span>
-            <span className="font-mono text-accent-cyan">{localTrie.wordCount}</span>
-          </div>
-          <div className="w-px h-4 bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted">Last operation:</span>
-            <span className="font-mono text-accent-purple">
-              {lastOp.type} {lastOp.word ? `"${lastOp.word}"` : ''}
-            </span>
-          </div>
-          <div className="w-px h-4 bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-text-muted">Time:</span>
-            <span className="font-mono text-warning">{lastOp.time || '—'}</span>
-          </div>
-
-          {statusMsg && (
-            <>
-              <div className="w-px h-4 bg-white/10" />
-              <span className="text-text-secondary">{statusMsg}</span>
-            </>
-          )}
-        </motion.div>
-
-        {/* Legend */}
-        <div className="mt-3 glass-card px-5 py-3 flex flex-wrap items-center gap-5 text-[11px]">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-white/10 bg-bg-surface" />
-            <span className="text-text-muted">Default node</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-accent-cyan/50 bg-accent-cyan/10 relative">
-              <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-cyan border border-bg-surface" />
-            </div>
-            <span className="text-text-muted">End of word</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-accent-blue/80 bg-accent-blue/15 glow-blue" />
-            <span className="text-text-muted">Traversed (search)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full border-2 border-accent-cyan/80 bg-accent-cyan/15 glow-cyan" />
-            <span className="text-text-muted">Newly inserted</span>
-          </div>
+        {/* React Flow Canvas */}
+        <div style={{ flex: 1, minWidth: '0', height: '680px', borderRadius: '20px', overflow: 'hidden', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.09)', position: 'relative' }}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.25 }}
+            minZoom={0.2}
+            maxZoom={2.5}
+            attributionPosition="bottom-left"
+          >
+            <Background color="rgba(255,255,255,0.025)" gap={24} />
+            <Controls />
+            <MiniMap
+              nodeColor={node => {
+                if (node.data?.isHighlighted) return '#4f8ef7';
+                if (node.data?.isNewlyInserted) return '#00d4aa';
+                if (node.data?.isEndOfWord) return '#00d4aa';
+                return '#1e1e2e';
+              }}
+              maskColor="rgba(10,10,15,0.85)"
+            />
+          </ReactFlow>
         </div>
+      </div>
 
-        {/* Viva Info Box */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 mb-16 glass-card p-5"
-        >
-          <h4 className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
-            <BookOpen size={14} />
-            📚 About This Feature
-          </h4>
-          <p className="text-xs text-text-secondary leading-relaxed mb-2">
-            This page visualizes the <strong className="text-text-primary">Trie (prefix tree)</strong> data structure in real-time.
-            Each node represents a character, and paths from root to green-marked nodes form complete words.
-            The tree re-renders on every insert, delete, and search operation.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            <ComplexityBadge type="time" value="O(L) Insert" color="cyan" />
-            <ComplexityBadge type="time" value="O(L) Search" color="blue" />
-            <ComplexityBadge type="time" value="O(L) Delete" color="purple" />
-            <ComplexityBadge type="space" value="O(N×L) Space" color="amber" />
+      {/* Status bar */}
+      <div style={{ marginTop: '14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '10px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px', fontSize: '12px' }}>
+        {[
+          ['Nodes', localTrie.nodeCount, '#4f8ef7'],
+          ['Words', localTrie.wordCount, '#00d4aa'],
+          ['Last op', `${lastOp.type}${lastOp.word ? ` "${lastOp.word}"` : ''}`, '#a855f7'],
+          ['Time', lastOp.time || '—', '#f59e0b'],
+        ].map(([label, val, color]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <span style={{ color: '#475569' }}>{label}:</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', color }}>{val}</span>
           </div>
-          <p className="text-[10px] text-text-muted mt-2">
-            Real-world use: Autocomplete engines, spell checkers, IP routing tables, dictionary implementations
-          </p>
-        </motion.div>
+        ))}
+        {statusMsg && <span style={{ color: '#94a3b8', marginLeft: '4px' }}>{statusMsg}</span>}
+      </div>
+
+      {/* Active Algorithms Panel — inline below status */}
+      <div style={{ marginTop: '10px', background: 'rgba(17,17,24,0.85)', border: '1px solid rgba(79,142,247,0.2)', borderRadius: '14px', padding: '12px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '12px', backdropFilter: 'blur(8px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#00d4aa', fontWeight: 600, fontSize: '12px', marginRight: '4px' }}>
+          <span style={{ fontSize: '14px' }}>⚡</span> Active Algorithms
+        </div>
+        {[{ name: 'Trie', c: 'O(L)', color: '#4f8ef7' }].map(ds => (
+          <span key={ds.name} style={{ fontSize: '10px', fontFamily: 'JetBrains Mono, monospace', fontWeight: 500, padding: '2px 8px', borderRadius: '999px', backgroundColor: `${ds.color}18`, color: ds.color, border: `1px solid ${ds.color}30` }}>
+            {ds.name} {ds.c}
+          </span>
+        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+          <span style={{ color: '#475569' }}>Last op:</span>
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#4f8ef7', fontSize: '11px' }}>
+            {lastOp.type === 'INIT' ? 'init()'
+              : lastOp.type === 'INSERT' ? `insert("${lastOp.word}")`
+              : lastOp.type === 'SEARCH' ? `search("${lastOp.word}")`
+              : lastOp.type === 'DELETE' ? `delete("${lastOp.word}")`
+              : lastOp.type === 'PREFIX' ? `getSuggestions("${lastOp.word}")`
+              : 'init()'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ color: '#475569' }}>Time:</span>
+          <span style={{ fontFamily: 'JetBrains Mono, monospace', color: '#00d4aa', fontSize: '11px' }}>
+            {lastOp.time || '—'}
+          </span>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{ marginTop: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '18px', fontSize: '12px' }}>
+        {[
+          { dot: { border: '2px solid rgba(255,255,255,0.15)', background: '#111118' }, label: 'Default' },
+          { dot: { border: '2px solid rgba(0,212,170,0.5)', background: 'rgba(0,212,170,0.1)' }, label: 'End of word' },
+          { dot: { border: '2px solid rgba(79,142,247,0.9)', background: 'rgba(79,142,247,0.18)', boxShadow: '0 0 8px rgba(79,142,247,0.3)' }, label: 'Searched' },
+          { dot: { border: '2px solid rgba(0,212,170,0.9)', background: 'rgba(0,212,170,0.18)', boxShadow: '0 0 8px rgba(0,212,170,0.3)' }, label: 'Inserted' },
+        ].map(({ dot, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <div style={{ width: '13px', height: '13px', borderRadius: '50%', ...dot }} />
+            <span style={{ color: '#94a3b8' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* About */}
+      <div style={{ marginTop: '14px', background: 'rgba(79,142,247,0.04)', border: '1px solid rgba(79,142,247,0.15)', borderRadius: '18px', padding: '22px' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BookOpen size={14} /> 📚 About This Feature
+        </div>
+        <p style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.7, marginBottom: '10px' }}>
+          This page visualizes the <strong style={{ color: '#f1f5f9' }}>Trie (prefix tree)</strong> data structure in real-time.
+          Each node represents a character, and paths from root to green-marked nodes form complete words.
+        </p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <ComplexityBadge type="time" value="O(L) Insert" color="cyan" />
+          <ComplexityBadge type="time" value="O(L) Search" color="blue" />
+          <ComplexityBadge type="time" value="O(L) Delete" color="purple" />
+          <ComplexityBadge type="space" value="O(N×L)" color="amber" />
+        </div>
+        <p style={{ fontSize: '11px', color: '#475569', marginTop: '8px' }}>
+          Real-world use: Autocomplete engines, spell checkers, IP routing tables
+        </p>
       </div>
     </motion.div>
   );
-};
+}
 
-export default TrieVisualizerPage;
+// ── Default export wraps with ReactFlowProvider (required by @xyflow/react) ──
+export default function TrieVisualizerPage() {
+  return (
+    <ReactFlowProvider>
+      <TrieVisualizerInner />
+    </ReactFlowProvider>
+  );
+}

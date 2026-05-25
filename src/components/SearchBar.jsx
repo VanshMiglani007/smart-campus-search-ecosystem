@@ -141,8 +141,11 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
       {/* Search Input */}
       <div
         className={`glass-card flex items-center gap-3 px-5 py-3.5 transition-all duration-300 ${
-          isFocused ? 'glow-blue' : ''
+          isFocused
+            ? 'glow-blue border-[rgba(79,142,247,0.4)]'
+            : 'border-[rgba(255,255,255,0.15)]'
         }`}
+        style={{ border: isFocused ? '1px solid rgba(79,142,247,0.4)' : '1px solid rgba(255,255,255,0.15)' }}
       >
         <Search size={20} className="text-text-muted flex-shrink-0" />
         <input
@@ -224,7 +227,7 @@ const SearchBar = ({ onSelectSuggestion, autoFocus = false, showAlgorithmInfo = 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 glass-card p-4"
+          className="mt-4 glass-card p-5 rounded-3xl border border-white/8 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]"
         >
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-accent-cyan animate-pulse" />

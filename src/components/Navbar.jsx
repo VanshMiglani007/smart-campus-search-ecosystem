@@ -31,88 +31,187 @@ const Navbar = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 w-full z-50 border-b border-white/10 shadow-lg transition-all duration-300"
-      style={{ backgroundColor: 'rgba(10, 10, 15, 0.75)', backdropFilter: 'blur(20px)' }}
+    <nav
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '70px',
+        zIndex: 100,
+        backgroundColor: 'rgba(10,10,15,0.88)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
     >
-      <div className="max-w-[1400px] mx-auto px-6">
-        <div className="flex items-center justify-between h-[70px]">
-          {/* Logo */}
-          <NavLink to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-blue to-accent-cyan flex items-center justify-center transition-transform group-hover:scale-110">
-              <Search size={16} className="text-white" />
-            </div>
-            <span className="text-lg font-bold font-[var(--font-heading)] gradient-text hidden sm:block">
-              CampusIQ
-            </span>
-          </NavLink>
- 
-          {/* Desktop Nav */}
-          <div className="hidden xl:flex items-center gap-1.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className="relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-1.5 hover:text-text-primary hover:bg-white/5"
-                  style={{
-                    color: isActive ? '#f1f5f9' : '#94a3b8',
-                  }}
-                >
-                  <Icon size={14} style={{ color: isActive ? '#00d4aa' : undefined }} />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute inset-0 rounded-lg -z-10 bg-white/5 border border-white/8 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
-                      transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                </NavLink>
-              );
-            })}
-          </div>
- 
-          {/* Mobile Menu Button */}
-          <button
-            className="xl:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle navigation menu"
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: '70px',
+          padding: '0 24px',
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* Logo */}
+        <NavLink
+          to="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            textDecoration: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+            <Search size={16} color="white" />
+          </div>
+          <span
+            style={{
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: '18px',
+              background: 'linear-gradient(135deg, #4f8ef7 0%, #00d4aa 50%, #a855f7 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            CampusIQ
+          </span>
+        </NavLink>
+
+        {/* Desktop nav links */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            overflow: 'hidden',
+          }}
+          className="desktop-nav"
+        >
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  fontSize: '13px',
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? '#f1f5f9' : '#94a3b8',
+                  background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                  border: isActive ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = '#f1f5f9';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                <Icon size={13} color={isActive ? '#00d4aa' : '#94a3b8'} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          style={{
+            display: 'none',
+            padding: '8px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(255,255,255,0.04)',
+            color: '#94a3b8',
+            cursor: 'pointer',
+          }}
+          className="mobile-menu-btn"
+        >
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </div>
- 
-      {/* Mobile Menu Drawer */}
+
+      {/* Mobile dropdown */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="xl:hidden overflow-hidden border-t border-white/5"
-            style={{ backgroundColor: 'rgba(17, 17, 24, 0.98)' }}
+            style={{
+              overflow: 'hidden',
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: '#0d0d15',
+            }}
           >
-            <div className="px-4 py-3 space-y-1">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '8px',
+                padding: '12px',
+              }}
+            >
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
                 return (
                   <NavLink
                     key={item.path}
                     to={item.path}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                     style={{
-                      color: isActive ? '#f1f5f9' : '#94a3b8',
-                      backgroundColor: isActive ? 'rgba(79, 142, 247, 0.1)' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      textDecoration: 'none',
+                      color: '#94a3b8',
+                      fontSize: '13px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(255,255,255,0.02)',
                     }}
                   >
-                    <Icon size={16} style={{ color: isActive ? '#4f8ef7' : undefined }} />
-                    <span>{item.label}</span>
+                    <Icon size={14} />
+                    {item.label}
                   </NavLink>
                 );
               })}
@@ -120,6 +219,14 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Responsive styles */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: flex !important; }
+        }
+      `}</style>
     </nav>
   );
 };

@@ -80,27 +80,68 @@ export function SearchProvider({ children }) {
 
     // 1. Get suggestions from Trie
     const trie = trieRef.current;
-    const suggestions = trie ? trie.getSuggestions(trimmedQuery, 8) : [];
+    
+    // Check if it matches a category name case-insensitively
+    const lowerQuery = trimmedQuery.toLowerCase();
+    const categories = ['notes', 'exams', 'faculty', 'hostel', 'events', 'library', 'courses', 'clubs', 'labs', 'resources'];
+    const isCategory = categories.includes(lowerQuery);
+
+    let suggestions = [];
+    if (isCategory) {
+      const allTrieWords = trie ? trie.getAllWords() : [];
+      suggestions = allTrieWords
+        .filter(item => item.category === lowerQuery)
+        .slice(0, 8);
+    } else {
+      suggestions = trie ? trie.getSuggestions(trimmedQuery, 8) : [];
+    }
+
+    // Dynamic Insertion: If this exact query is not in the Trie and is not a category, add it!
+    const exists = trie ? trie.search(trimmedQuery) : false;
+    if (trie && !exists && !isCategory) {
+      // Determine default category based on matching tags or default to resources
+      trie.insert(trimmedQuery, 'resources', 1);
+    }
+
     const elapsed = performance.now() - startTime;
 
     // 2. Update HashMap frequency
     const hashMap = hashMapRef.current;
-    if (hashMap) {
-      hashMap.increment(trimmedQuery);
+    if (hashMap && !isCategory) {
+      if (!hashMap.has(trimmedQuery)) {
+        hashMap.set(trimmedQuery, 1);
+      } else {
+        hashMap.increment(trimmedQuery);
+      }
       setFrequencyData(hashMap.getTopN(10));
     }
 
-    // 3. Update MaxHeap trending score
+    // 3. Update MaxHeap trending score with dynamic decay
     const heap = heapRef.current;
-    if (heap) {
-      heap.updateScore(trimmedQuery, 1);
+    if (heap && !isCategory) {
+      // Decay existing scores slightly so trends shift dynamically!
+      const decayedHeap = heap.heap.map(item => ({
+        word: item.word,
+        score: Math.max(1, Math.round(item.score * 0.94))
+      }));
+      heap.clear();
+      decayedHeap.forEach(item => {
+        heap.insert(item);
+      });
+
+      // Now insert or boost the searched query
+      if (!heap.has(trimmedQuery)) {
+        heap.insert({ word: trimmedQuery, score: 20 }); // High initial score
+      } else {
+        heap.updateScore(trimmedQuery, 25); // Solid boost on search
+      }
       setTrendingItems(heap.getTopN(5));
     }
 
     // 4. Update LRU Cache (search history)
     const lru = lruRef.current;
     let evictedKey = null;
-    if (lru) {
+    if (lru && !isCategory) {
       const result = lru.put(trimmedQuery, trimmedQuery);
       evictedKey = result.evictedKey;
       setRecentSearches(lru.getAll());
@@ -138,7 +179,8 @@ export function SearchProvider({ children }) {
    */
   const getTypoCorrection = useCallback((input) => {
     if (!input || input.trim().length < 2) return null;
-    const allWords = getAllWords();
+    const trie = trieRef.current;
+    const allWords = trie ? trie.getAllWords().map(w => w.word) : [];
     return findClosestMatch(input.trim(), allWords, 3);
   }, []);
 
@@ -153,7 +195,17 @@ export function SearchProvider({ children }) {
 
     const heap = heapRef.current;
     if (heap) {
-      heap.updateScore(word, 2); // Extra weight for selection
+      // Decay scores slightly on selection as well
+      const decayedHeap = heap.heap.map(item => ({
+        word: item.word,
+        score: Math.max(1, Math.round(item.score * 0.94))
+      }));
+      heap.clear();
+      decayedHeap.forEach(item => {
+        heap.insert(item);
+      });
+
+      heap.updateScore(word, 35); // Extra large weight for selection
       setTrendingItems(heap.getTopN(5));
     }
 
@@ -209,3 +261,4 @@ export function useSearch() {
   }
   return context;
 }
+

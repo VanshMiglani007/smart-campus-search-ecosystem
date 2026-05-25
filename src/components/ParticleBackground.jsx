@@ -13,18 +13,31 @@ const ParticleBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {/* Mesh gradient background */}
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Ambient gradient */}
       <div
-        className="absolute inset-0"
         style={{
+          position: 'absolute',
+          inset: 0,
           background: `
-            radial-gradient(ellipse 60% 50% at 20% 20%, rgba(79, 142, 247, 0.06) 0%, transparent 70%),
-            radial-gradient(ellipse 50% 60% at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0, 212, 170, 0.03) 0%, transparent 70%)
+            radial-gradient(circle at 20% 20%, rgba(79,142,247,.06), transparent 35%),
+            radial-gradient(circle at 80% 80%, rgba(168,85,247,.05), transparent 35%),
+            radial-gradient(circle at 50% 50%, rgba(0,212,170,.03), transparent 35%)
           `,
         }}
       />
+
       {/* Floating particles */}
       {particles.map((p) => (
         <div

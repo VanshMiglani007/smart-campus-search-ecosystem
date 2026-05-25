@@ -52,7 +52,7 @@ const SuggestionDropdown = ({ suggestions, query, onSelect, typoSuggestion, onTy
       exit={{ opacity: 0, scaleY: 0.95 }}
       transition={{ duration: 0.15 }}
       style={{ transformOrigin: 'top' }}
-      className="absolute top-full left-0 right-0 mt-2 glass-card overflow-hidden z-50"
+      className="absolute top-full left-0 right-0 mt-2 glass-card rounded-2xl border border-white/8 shadow-[0_16px_48px_0_rgba(0,0,0,0.6)] overflow-hidden z-50"
     >
       {/* Suggestions List */}
       {suggestions.map((item, index) => {

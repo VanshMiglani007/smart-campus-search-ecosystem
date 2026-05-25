@@ -1,9 +1,11 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { SearchProvider, useSearch } from './context/SearchContext';
+
 import Navbar from './components/Navbar';
 import ParticleBackground from './components/ParticleBackground';
 import AlgorithmPanel from './components/AlgorithmPanel';
+
 import HomePage from './pages/HomePage';
 import AutocompletePage from './pages/AutocompletePage';
 import TrieVisualizerPage from './pages/TrieVisualizerPage';
@@ -36,12 +38,40 @@ function AppContent() {
   const { lastOperation } = useSearch();
 
   return (
-    <div className="relative min-h-screen">
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#0a0a0f',
+      }}
+    >
+      {/* Particle layer — fixed behind everything */}
       <ParticleBackground />
+
+      {/* Fixed top navbar */}
       <Navbar />
-      <main className="relative z-10">
+
+      {/* Main content — pushed below navbar */}
+      <main
+        style={{
+          flex: 1,
+          width: '100%',
+          paddingTop: '70px',      /* exact navbar height */
+          paddingBottom: '80px',   /* clear algorithm panel */
+          boxSizing: 'border-box',
+          overflowX: 'hidden',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
         <AnimatedRoutes />
       </main>
+
+      {/* Algorithm Panel — floating bottom-right */}
       <AlgorithmPanel
         activeDS={['trie', 'heap', 'lru', 'hashmap']}
         lastOp={lastOperation.op}

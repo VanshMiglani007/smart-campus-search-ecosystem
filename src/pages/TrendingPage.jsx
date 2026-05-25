@@ -3,30 +3,26 @@ import { motion } from 'framer-motion';
 import { TrendingUp, Plus, Flame, BookOpen, ArrowUp } from 'lucide-react';
 import { useSearch } from '../context/SearchContext';
 import ComplexityBadge from '../components/ComplexityBadge';
+import { S, C } from '../styles';
 
 const TrendingPage = () => {
   const { heap, performSearch } = useSearch();
   const [simulateInput, setSimulateInput] = useState('');
-  const [heapArray, setHeapArray] = useState(() => {
-    return heap?.current ? heap.current.getRawHeap() : [];
-  });
+  const [heapArray, setHeapArray] = useState(() =>
+    heap?.current ? heap.current.getRawHeap() : []
+  );
   const [swapIndices, setSwapIndices] = useState([]);
 
   const refreshHeap = useCallback(() => {
-    if (heap?.current) {
-      setHeapArray(heap.current.getRawHeap());
-    }
+    if (heap?.current) setHeapArray(heap.current.getRawHeap());
   }, [heap]);
 
   const handleSimulateSearch = () => {
     const word = simulateInput.trim();
     if (!word) return;
-
     performSearch(word);
     refreshHeap();
     setSimulateInput('');
-
-    // Brief highlight animation
     if (heap?.current) {
       const idx = heap.current.indexMap[word];
       if (idx !== undefined) {
@@ -36,15 +32,11 @@ const TrendingPage = () => {
     }
   };
 
-  // Build tree visualization levels from the heap array state
   const getTreeLevels = () => {
     const arr = heapArray;
     if (arr.length === 0) return [];
-
     const levels = [];
-    let i = 0;
-    let levelSize = 1;
-
+    let i = 0, levelSize = 1;
     while (i < arr.length) {
       const level = [];
       for (let j = 0; j < levelSize && i < arr.length; j++, i++) {
@@ -53,219 +45,199 @@ const TrendingPage = () => {
       levels.push(level);
       levelSize *= 2;
     }
-
     return levels;
   };
 
   const treeLevels = getTreeLevels();
-  const currentHeap = heapArray;
   const topItems = [...heapArray].sort((a, b) => b.score - a.score).slice(0, 10);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen pt-28 pb-16 px-6"
+      style={S.page}
     >
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-            <TrendingUp size={28} className="text-red-500" />
-          </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2">Trending Engine</h1>
-          <p className="text-text-secondary text-sm">MaxHeap-powered real-time trending keyword tracking</p>
+      {/* Header */}
+      <div style={S.pageHeader}>
+        <div style={S.iconBadge(C.red)}>
+          <TrendingUp size={26} color={C.red} />
+        </div>
+        <h1 style={S.pageTitle}>Trending Engine</h1>
+        <p style={S.pageSubtitle}>MaxHeap-powered real-time trending keyword tracking</p>
+      </div>
+
+      {/* Simulate Search */}
+      <div style={S.card}>
+        <div style={S.cardTitle}>Simulate Search Event</div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            value={simulateInput}
+            onChange={(e) => setSimulateInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSimulateSearch()}
+            placeholder="Type a keyword to simulate a search..."
+            style={S.input}
+          />
+          <button onClick={handleSimulateSearch} style={S.btnSecondary(C.amber)}>
+            <Plus size={14} /> Add Search
+          </button>
+        </div>
+        <p style={{ ...S.muted, marginTop: '10px' }}>
+          Each search → updates heap score → re-heapifies → O(log N) bubble-up
+        </p>
+      </div>
+
+      {/* Heap Tree Visualization */}
+      <div style={S.card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+          <span style={S.sectionTitle}>MaxHeap Tree Visualization</span>
+          <ComplexityBadge type="time" value="O(log N) insert" color="amber" />
         </div>
 
-        {/* Simulate Search Controls */}
-        <div className="glass-card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-text-primary mb-3">Simulate Search Event</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={simulateInput}
-              onChange={(e) => setSimulateInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSimulateSearch()}
-              placeholder="Type a keyword to simulate a search..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-warning/50 transition-colors"
-            />
-            <button
-              onClick={handleSimulateSearch}
-              className="px-4 py-2.5 rounded-lg bg-warning/20 text-warning text-sm font-medium hover:bg-warning/30 transition-colors flex items-center gap-1.5"
-            >
-              <Plus size={14} /> Add Search
-            </button>
-          </div>
-          <p className="text-[10px] text-text-muted mt-2">
-            Each simulated search → updates heap score → re-heapifies → triggers O(log N) bubble-up
+        {treeLevels.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#475569', padding: '32px 0', fontSize: '14px' }}>
+            Heap is empty. Simulate searches to populate.
           </p>
-        </div>
-
-        {/* Heap Tree Visualization */}
-        <div className="glass-card p-6 mb-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-text-primary">MaxHeap Tree Visualization</h3>
-            <ComplexityBadge type="time" value="O(log N) insert" color="amber" />
-          </div>
-
-          {treeLevels.length === 0 ? (
-            <p className="text-center text-text-muted py-8 text-sm">Heap is empty. Simulate searches to populate.</p>
-          ) : (
-            <div className="space-y-4 overflow-x-auto pb-2">
+        ) : (
+          <div style={{ overflowX: 'auto', paddingBottom: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 'max-content' }}>
               {treeLevels.map((level, levelIdx) => (
-                <div key={levelIdx} className="flex justify-center gap-3" style={{ gap: `${Math.max(8, 64 / (levelIdx + 1))}px` }}>
+                <div key={levelIdx} style={{ display: 'flex', justifyContent: 'center', gap: `${Math.max(8, 60 / (levelIdx + 1))}px` }}>
                   {level.map((item) => (
                     <motion.div
                       key={item.index}
                       layout
                       initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{
-                        scale: swapIndices.includes(item.index) ? 1.15 : 1,
-                        opacity: 1,
-                      }}
+                      animate={{ scale: swapIndices.includes(item.index) ? 1.15 : 1, opacity: 1 }}
                       transition={{ duration: 0.3 }}
-                      className={`
-                        glass-card px-3 py-2 min-w-[90px] text-center relative
-                        ${item.index === 0 ? 'border-warning/40' : 'border-white/10'}
-                        ${swapIndices.includes(item.index) ? 'glow-blue' : ''}
-                      `}
                       style={{
-                        borderColor: item.index === 0 ? 'rgba(245,158,11,0.4)' : undefined,
+                        minWidth: '90px',
+                        padding: '10px 14px',
+                        borderRadius: '14px',
+                        background: item.index === 0 ? `rgba(245,158,11,0.08)` : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${item.index === 0 ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                        textAlign: 'center',
+                        position: 'relative',
+                        boxShadow: swapIndices.includes(item.index) ? '0 0 20px rgba(79,142,247,0.3)' : 'none',
                       }}
                     >
                       {item.index === 0 && (
-                        <div className="absolute -top-2 -right-2 text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-mono">
-                          MAX
-                        </div>
+                        <div style={{ position: 'absolute', top: '-10px', right: '-8px', fontSize: '9px', background: 'rgba(245,158,11,0.2)', color: C.amber, padding: '2px 6px', borderRadius: '999px', fontFamily: 'JetBrains Mono, monospace' }}>MAX</div>
                       )}
-                      <div className="text-xs font-medium text-text-primary truncate max-w-[80px]">
-                        {item.word}
-                      </div>
-                      <div className="text-[10px] font-mono text-warning mt-0.5">
-                        {item.score}
-                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>{item.word}</div>
+                      <div style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: C.amber, marginTop: '2px' }}>{item.score}</div>
                     </motion.div>
                   ))}
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Heap Array Representation */}
-        <div className="glass-card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-text-primary mb-3">Heap Array Representation</h3>
-          <div className="overflow-x-auto">
-            <div className="flex gap-1 min-w-max">
-              {currentHeap.slice(0, 15).map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className={`text-center px-3 py-2 rounded-lg border ${
-                    i === 0 ? 'border-warning/40 bg-warning/5' : 'border-white/10 bg-white/3'
-                  }`}
-                >
-                  <div className="text-[9px] font-mono text-text-muted mb-0.5">i={i}</div>
-                  <div className="text-[10px] text-text-primary font-medium truncate max-w-[60px]">{item.word}</div>
-                  <div className="text-[10px] font-mono text-warning">{item.score}</div>
-                </motion.div>
-              ))}
-            </div>
-            {currentHeap.length > 15 && (
-              <p className="text-[10px] text-text-muted mt-2">...and {currentHeap.length - 15} more items</p>
-            )}
           </div>
-          <div className="mt-3 text-[10px] text-text-muted font-mono">
-            Parent(i) = ⌊(i-1)/2⌋ &nbsp;|&nbsp; Left(i) = 2i+1 &nbsp;|&nbsp; Right(i) = 2i+2
-          </div>
-        </div>
+        )}
+      </div>
 
-        {/* Trending Cards */}
-        <div className="glass-card p-5 mb-6">
-          <h3 className="text-sm font-semibold text-text-primary mb-4 flex items-center gap-2">
-            <Flame size={14} className="text-warning" />
-            Top Trending Keywords
-          </h3>
-          <div className="space-y-2">
-            {topItems.slice(0, 8).map((item, i) => (
+      {/* Heap Array */}
+      <div style={S.card}>
+        <div style={S.cardTitle}>Heap Array Representation</div>
+        <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: '8px', minWidth: 'max-content' }}>
+            {heapArray.slice(0, 15).map((item, i) => (
               <motion.div
-                key={item.word}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/3 transition-colors"
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                style={{
+                  textAlign: 'center',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: `1px solid ${i === 0 ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  background: i === 0 ? 'rgba(245,158,11,0.06)' : 'rgba(255,255,255,0.02)',
+                  minWidth: '70px',
+                }}
               >
-                <span className={`text-sm font-bold w-8 ${i < 3 ? 'text-warning' : 'text-text-muted'}`}>
-                  {i < 3 ? '🔥' : ''} #{i + 1}
-                </span>
-                <span className="text-sm text-text-primary flex-1 font-medium">{item.word}</span>
-                <span className="text-sm font-mono text-warning font-bold">{item.score}</span>
-                <div className="flex items-center gap-0.5 text-accent-cyan text-[10px]">
-                  <ArrowUp size={10} />
-                  <span>+{((i * 7 + 13) % 15) + 1}</span>
-                </div>
+                <div style={{ fontSize: '9px', fontFamily: 'JetBrains Mono, monospace', color: '#475569', marginBottom: '4px' }}>i={i}</div>
+                <div style={{ fontSize: '11px', color: '#f1f5f9', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60px' }}>{item.word}</div>
+                <div style={{ fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: C.amber }}>{item.score}</div>
               </motion.div>
             ))}
           </div>
         </div>
-
-        {/* How It Works */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-text-primary mb-3">⚙️ Heap Operations</h3>
-            <div className="space-y-2 text-xs text-text-secondary">
-              <p><span className="font-mono text-warning">insert()</span> — Add item, heapifyUp from last index. O(log N)</p>
-              <p><span className="font-mono text-warning">extractMax()</span> — Remove root, swap with last, heapifyDown. O(log N)</p>
-              <p><span className="font-mono text-warning">heapifyUp(i)</span> — Compare with parent, swap if larger. Repeat.</p>
-              <p><span className="font-mono text-warning">heapifyDown(i)</span> — Compare with children, swap with larger. Repeat.</p>
-              <p><span className="font-mono text-warning">updateScore()</span> — Find by indexMap, adjust, re-heapify. O(log N)</p>
-            </div>
-          </div>
-
-          <div className="glass-card p-5">
-            <h3 className="text-sm font-semibold text-text-primary mb-3">📊 Scoring Formula</h3>
-            <div className="space-y-2 text-xs text-text-secondary">
-              <p>Score = Base Frequency + Search Count Increments</p>
-              <p>Each search adds <span className="font-mono text-accent-cyan">+1</span> to the word&apos;s heap score</p>
-              <p>Each selection adds <span className="font-mono text-accent-cyan">+2</span> (clicked result)</p>
-              <p>Heap property: parent.score ≥ children.score (MaxHeap)</p>
-              <p>Root always holds the highest-scoring keyword</p>
-            </div>
-          </div>
+        <div style={{ ...S.muted, marginTop: '12px', fontFamily: 'JetBrains Mono, monospace', fontSize: '11px' }}>
+          Parent(i) = ⌊(i-1)/2⌋ &nbsp;|&nbsp; Left(i) = 2i+1 &nbsp;|&nbsp; Right(i) = 2i+2
         </div>
-
-        {/* Viva Info Box */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="glass-card p-5 mb-16"
-        >
-          <h4 className="text-sm font-semibold text-text-primary mb-2 flex items-center gap-2">
-            <BookOpen size={14} />
-            📚 About This Feature
-          </h4>
-          <p className="text-xs text-text-secondary leading-relaxed mb-2">
-            This page demonstrates the <strong className="text-text-primary">MaxHeap (Binary Heap)</strong> data structure
-            used for maintaining a live &quot;trending&quot; ranking. The heap ensures the highest-scoring keyword is always
-            at the root (index 0), with O(log N) operations for insertion and score updates.
-            The index map provides O(1) lookup by word.
-          </p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            <ComplexityBadge type="time" value="O(log N) insert" color="amber" />
-            <ComplexityBadge type="time" value="O(log N) extract" color="blue" />
-            <ComplexityBadge type="time" value="O(1) peek" color="cyan" />
-            <ComplexityBadge type="space" value="O(N)" color="purple" />
-          </div>
-          <p className="text-[10px] text-text-muted mt-2">
-            Real-world use: Priority queues, OS task scheduling, Dijkstra&apos;s algorithm, Twitter trending topics
-          </p>
-        </motion.div>
       </div>
+
+      {/* Trending Keywords */}
+      <div style={S.card}>
+        <div style={S.cardTitle}><Flame size={14} color={C.amber} /> Top Trending Keywords</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {topItems.slice(0, 8).map((item, i) => (
+            <motion.div
+              key={item.word}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)' }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: 700, width: '36px', color: i < 3 ? C.amber : '#475569' }}>
+                {i < 3 ? '🔥' : ''} #{i + 1}
+              </span>
+              <span style={{ fontSize: '14px', color: '#f1f5f9', fontWeight: 500, flex: 1 }}>{item.word}</span>
+              <span style={{ fontSize: '14px', fontFamily: 'JetBrains Mono, monospace', color: C.amber, fontWeight: 700 }}>{item.score}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: C.cyan, fontSize: '11px' }}>
+                <ArrowUp size={10} />+{((i * 7 + 13) % 15) + 1}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div style={S.grid2}>
+        <div style={{ ...S.card, marginBottom: 0 }}>
+          <div style={S.cardTitle}>⚙️ Heap Operations</div>
+          {[
+            ['insert()', 'Add item, heapifyUp from last index. O(log N)'],
+            ['extractMax()', 'Remove root, swap with last, heapifyDown. O(log N)'],
+            ['heapifyUp(i)', 'Compare with parent, swap if larger. Repeat.'],
+            ['heapifyDown(i)', 'Compare with children, swap with larger. Repeat.'],
+            ['updateScore()', 'Find by indexMap, adjust, re-heapify. O(log N)'],
+          ].map(([fn, desc]) => (
+            <p key={fn} style={S.cardText}>
+              <span style={S.mono(C.amber)}>{fn}</span> — {desc}
+            </p>
+          ))}
+        </div>
+        <div style={{ ...S.card, marginBottom: 0 }}>
+          <div style={S.cardTitle}>📊 Scoring Formula</div>
+          {[
+            'Score = Base Frequency + Search Count Increments',
+            <>Each search adds <span style={S.mono(C.cyan)}>+1</span> to the word&apos;s heap score</>,
+            <>Each selection adds <span style={S.mono(C.cyan)}>+2</span> (clicked result)</>,
+            'Heap property: parent.score ≥ children.score (MaxHeap)',
+            'Root always holds the highest-scoring keyword',
+          ].map((t, i) => <p key={i} style={S.cardText}>{t}</p>)}
+        </div>
+      </div>
+
+      {/* About */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} style={S.infoBox}>
+        <div style={S.cardTitle}><BookOpen size={14} /> 📚 About This Feature</div>
+        <p style={S.cardText}>
+          This page demonstrates the <strong style={{ color: C.white }}>MaxHeap (Binary Heap)</strong> data structure for maintaining
+          a live &quot;trending&quot; ranking. The heap ensures the highest-scoring keyword is always at the root, with O(log N)
+          operations for insertion and score updates. The index map provides O(1) lookup by word.
+        </p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
+          <ComplexityBadge type="time" value="O(log N) insert" color="amber" />
+          <ComplexityBadge type="time" value="O(log N) extract" color="blue" />
+          <ComplexityBadge type="time" value="O(1) peek" color="cyan" />
+          <ComplexityBadge type="space" value="O(N)" color="purple" />
+        </div>
+        <p style={{ ...S.muted, marginTop: '8px' }}>Real-world use: Priority queues, OS task scheduling, Dijkstra&apos;s, Twitter trending</p>
+      </motion.div>
     </motion.div>
   );
 };
