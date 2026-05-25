@@ -8,13 +8,17 @@ import { S, C } from '../styles';
 
 const TypoCorrectionPage = () => {
   const [input, setInput] = useState('');
+  const [searchedInput, setSearchedInput] = useState('');
   const [result, setResult] = useState(null);
   const [detailResult, setDetailResult] = useState(null);
   const allWords = useMemo(() => getAllWords(), []);
 
-  const handleCheck = () => {
-    const word = input.trim();
+  const handleCheck = (overrideWord) => {
+    const word = (overrideWord !== undefined ? overrideWord : input).trim();
     if (!word) return;
+    
+    setSearchedInput(word);
+    
     const match = findClosestMatch(word, allWords, 3);
     if (match) {
       const detail = levenshtein(word, match.word);
@@ -78,7 +82,10 @@ const TypoCorrectionPage = () => {
           {examples.map((ex) => (
             <button
               key={ex}
-              onClick={() => setInput(ex)}
+              onClick={() => {
+                setInput(ex);
+                handleCheck(ex);
+              }}
               style={{
                 fontSize: '11px',
                 padding: '3px 10px',
@@ -108,7 +115,7 @@ const TypoCorrectionPage = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <span style={S.muted}>You typed:</span>
-            <span style={{ fontSize: '18px', fontFamily: 'JetBrains Mono, monospace', color: '#ef4444', textDecoration: 'line-through' }}>{input}</span>
+            <span style={{ fontSize: '18px', fontFamily: 'JetBrains Mono, monospace', color: '#ef4444', textDecoration: 'line-through' }}>{searchedInput}</span>
             <span style={{ color: '#475569', fontSize: '18px' }}>→</span>
             <span style={S.muted}>Did you mean:</span>
             <span style={{ fontSize: '20px', fontWeight: 700, color: C.cyan }}>{result.word}</span>
@@ -130,7 +137,7 @@ const TypoCorrectionPage = () => {
             <span style={S.sectionTitle}>DP Matrix Visualization</span>
             <ComplexityBadge
               type="time"
-              value={`O(${input.trim().length}×${result.word.length})`}
+              value={`O(${searchedInput.length}×${result.word.length})`}
               color="blue"
             />
           </div>
@@ -152,11 +159,11 @@ const TypoCorrectionPage = () => {
                 {detailResult.matrix.map((row, i) => (
                   <tr key={i}>
                     <td style={{ width: '36px', height: '36px', fontSize: '12px', fontFamily: 'JetBrains Mono, monospace', color: C.blue, fontWeight: 700, textAlign: 'center' }}>
-                      {i === 0 ? '""' : input.trim()[i - 1]}
+                      {i === 0 ? '""' : searchedInput[i - 1]}
                     </td>
                     {row.map((cell, j) => {
                       const isFinal = i === detailResult.matrix.length - 1 && j === row.length - 1;
-                      const cellType = getCellType(detailResult.matrix, input.trim(), result.word, i, j);
+                      const cellType = getCellType(detailResult.matrix, searchedInput, result.word, i, j);
                       const colors = getCellColor(cellType, isFinal);
                       return (
                         <motion.td
@@ -229,7 +236,7 @@ const TypoCorrectionPage = () => {
           </div>
           <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '11px', fontFamily: 'JetBrains Mono, monospace', color: '#475569' }}>
             Edit Distance: {detailResult.distance} &nbsp;|&nbsp;
-            O({input.trim().length} × {result?.word?.length || 0}) = O({input.trim().length * (result?.word?.length || 0)})
+            O({searchedInput.length} × {result?.word?.length || 0}) = O({searchedInput.length * (result?.word?.length || 0)})
           </div>
         </motion.div>
       )}
