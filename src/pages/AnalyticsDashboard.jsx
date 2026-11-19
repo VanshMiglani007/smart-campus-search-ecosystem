@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Search, Clock, Hash, FolderOpen, BookOpen } from 'lucide-react';
+import { BarChart3, Search, Clock, Hash, FolderOpen, BookOpen, RotateCcw } from 'lucide-react';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -28,7 +28,7 @@ ChartJS.register(
 const chartFont = { family: "'JetBrains Mono', monospace", size: 10 };
 
 const AnalyticsDashboard = () => {
-  const { analytics, frequencyData, hashMap } = useSearch();
+  const { analytics, frequencyData, hashMap, resetAllData } = useSearch();
 
   const avgResponse = useMemo(() => {
     if (analytics.responseTimes.length === 0) return '—';
@@ -140,6 +140,33 @@ const AnalyticsDashboard = () => {
         </div>
         <h1 style={S.pageTitle}>Analytics Dashboard</h1>
         <p style={S.pageSubtitle}>Real-time search analytics powered by HashMap</p>
+        <div style={{ marginTop: '12px' }}>
+          <button
+            onClick={() => {
+              if (window.confirm('Reset all search counts, custom keywords, and analytics back to the default campus seed data?')) {
+                resetAllData();
+              }
+            }}
+            style={{
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              color: '#ef4444',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+          >
+            <RotateCcw size={13} /> Reset Analytics Data to Default
+          </button>
+        </div>
       </div>
 
       {/* Stat Cards */}

@@ -4,16 +4,110 @@ import { MaxHeap } from '../algorithms/Heap';
 import { LRUCache } from '../algorithms/LRUCache';
 import { HashMap } from '../algorithms/HashMap';
 import { findClosestMatch } from '../algorithms/Levenshtein';
-import campusData, { getAllWords } from '../data/campusData';
+import campusData from '../data/campusData';
 
 const SearchContext = createContext(null);
 
+const STORAGE_KEYS = {
+  DATASET: 'campusiq_dataset',
+  ANALYTICS: 'campusiq_analytics',
+  RECENT: 'campusiq_recent_searches',
+};
+
+function getPersistedDataset() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DATASET);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse campusiq_dataset from localStorage', e);
+  }
+  return campusData;
+}
+
+function savePersistedDataset(dataset) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DATASET, JSON.stringify(dataset));
+  } catch (e) {
+    console.error('Failed to save campusiq_dataset to localStorage', e);
+  }
+}
+
+function getPersistedAnalytics() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ANALYTICS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.totalSearches === 'number') return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse campusiq_analytics from localStorage', e);
+  }
+  return {
+    totalSearches: 0,
+    sessionStart: Date.now(),
+    responseTimes: [],
+    searchTimeline: [],
+  };
+}
+
+function savePersistedAnalytics(analytics) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ANALYTICS, JSON.stringify(analytics));
+  } catch (e) {
+    console.error('Failed to save campusiq_analytics to localStorage', e);
+  }
+}
+
+function getPersistedRecentSearches() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.RECENT);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse campusiq_recent_searches from localStorage', e);
+  }
+  return [];
+}
+
+function savePersistedRecentSearches(recent) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.RECENT, JSON.stringify(recent));
+  } catch (e) {
+    console.error('Failed to save campusiq_recent_searches to localStorage', e);
+  }
+}
+
 export function SearchProvider({ children }) {
+  // ── In-Memory Dataset persistence ref ──
+  const datasetRef = useRef(null);
+  if (datasetRef.current === null) {
+    datasetRef.current = getPersistedDataset();
+  }
+  const dataset = datasetRef.current;
+
+  // ── Helper to update word frequency & new terms in persistent storage ──
+  const updatePersistedItem = (word, newFreq, defaultCategory = 'resources') => {
+    let list = datasetRef.current || [];
+    const index = list.findIndex(item => item.word.toLowerCase() === word.toLowerCase());
+    if (index >= 0) {
+      list[index].frequency = newFreq;
+    } else {
+      list.push({ word, category: defaultCategory, frequency: newFreq, tags: [defaultCategory] });
+    }
+    datasetRef.current = list;
+    savePersistedDataset(list);
+  };
+
   // ── Refs for mutable DSA instances (persist across re-renders) ──
   const trieRef = useRef(null);
   if (trieRef.current === null) {
     const trie = new Trie();
-    campusData.forEach(item => {
+    dataset.forEach(item => {
       trie.insert(item.word, item.category, item.frequency);
     });
     trieRef.current = trie;
@@ -22,7 +116,7 @@ export function SearchProvider({ children }) {
   const heapRef = useRef(null);
   if (heapRef.current === null) {
     const heap = new MaxHeap();
-    campusData.forEach(item => {
+    dataset.forEach(item => {
       heap.insert({ word: item.word, score: item.frequency });
     });
     heapRef.current = heap;
@@ -30,47 +124,52 @@ export function SearchProvider({ children }) {
 
   const lruRef = useRef(null);
   if (lruRef.current === null) {
-    lruRef.current = new LRUCache(7);
+    const lru = new LRUCache(7);
+    const savedRecent = getPersistedRecentSearches();
+    [...savedRecent].reverse().forEach(word => {
+      lru.put(word, word);
+    });
+    lruRef.current = lru;
   }
 
   const hashMapRef = useRef(null);
   if (hashMapRef.current === null) {
     const hashMap = new HashMap(53);
-    campusData.forEach(item => {
+    dataset.forEach(item => {
       hashMap.set(item.word, item.frequency);
     });
     hashMapRef.current = hashMap;
   }
 
-  // ── State for UI reactivity ──
-  const [analytics, setAnalytics] = useState(() => ({
-    totalSearches: 0,
-    sessionStart: Date.now(),
-    responseTimes: [],
-    searchTimeline: [],     // { timestamp, count } for line chart
-  }));
+  // ── State for UI reactivity (initialized from localStorage) ──
+  const [analytics, setAnalytics] = useState(getPersistedAnalytics);
 
-  const [recentSearches, setRecentSearches] = useState([]);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    return lruRef.current ? lruRef.current.getAll() : getPersistedRecentSearches();
+  });
 
   const [trendingItems, setTrendingItems] = useState(() => {
-    return [...campusData]
-      .sort((a, b) => b.frequency - a.frequency)
-      .slice(0, 5)
-      .map(item => ({ word: item.word, score: item.frequency }));
+    return heapRef.current
+      ? heapRef.current.getTopN(5)
+      : [...dataset]
+          .sort((a, b) => b.frequency - a.frequency)
+          .slice(0, 5)
+          .map(item => ({ word: item.word, score: item.frequency }));
   });
 
   const [frequencyData, setFrequencyData] = useState(() => {
-    return [...campusData]
-      .sort((a, b) => b.frequency - a.frequency)
-      .slice(0, 10)
-      .map(item => ({ key: item.word, value: item.frequency }));
+    return hashMapRef.current
+      ? hashMapRef.current.getTopN(10)
+      : [...dataset]
+          .sort((a, b) => b.frequency - a.frequency)
+          .slice(0, 10)
+          .map(item => ({ key: item.word, value: item.frequency }));
   });
 
   const [lastOperation, setLastOperation] = useState({ op: 'init()', complexity: '—' });
 
   /**
-   * Perform a search query — updates all data structures
-   * This is the main entry point called on every search event
+   * Perform a search query — updates all data structures and local storage
    */
   const performSearch = useCallback((query) => {
     if (!query || !query.trim()) return { suggestions: [], elapsed: 0 };
@@ -99,8 +198,8 @@ export function SearchProvider({ children }) {
     // Dynamic Insertion: If this exact query is not in the Trie and is not a category, add it!
     const exists = trie ? trie.search(trimmedQuery) : false;
     if (trie && !exists && !isCategory) {
-      // Determine default category based on matching tags or default to resources
       trie.insert(trimmedQuery, 'resources', 1);
+      updatePersistedItem(trimmedQuery, 1, 'resources');
     }
 
     const elapsed = performance.now() - startTime;
@@ -110,8 +209,10 @@ export function SearchProvider({ children }) {
     if (hashMap && !isCategory) {
       if (!hashMap.has(trimmedQuery)) {
         hashMap.set(trimmedQuery, 1);
+        updatePersistedItem(trimmedQuery, 1, 'resources');
       } else {
-        hashMap.increment(trimmedQuery);
+        const newCount = hashMap.increment(trimmedQuery);
+        updatePersistedItem(trimmedQuery, newCount || ((hashMap.get(trimmedQuery) || 1)));
       }
       setFrequencyData(hashMap.getTopN(10));
     }
@@ -119,7 +220,6 @@ export function SearchProvider({ children }) {
     // 3. Update MaxHeap trending score with dynamic decay
     const heap = heapRef.current;
     if (heap && !isCategory) {
-      // Decay existing scores slightly so trends shift dynamically!
       const decayedHeap = heap.heap.map(item => ({
         word: item.word,
         score: Math.max(1, Math.round(item.score * 0.94))
@@ -129,11 +229,10 @@ export function SearchProvider({ children }) {
         heap.insert(item);
       });
 
-      // Now insert or boost the searched query
       if (!heap.has(trimmedQuery)) {
-        heap.insert({ word: trimmedQuery, score: 20 }); // High initial score
+        heap.insert({ word: trimmedQuery, score: 20 });
       } else {
-        heap.updateScore(trimmedQuery, 25); // Solid boost on search
+        heap.updateScore(trimmedQuery, 25);
       }
       setTrendingItems(heap.getTopN(5));
     }
@@ -144,7 +243,9 @@ export function SearchProvider({ children }) {
     if (lru && !isCategory) {
       const result = lru.put(trimmedQuery, trimmedQuery);
       evictedKey = result.evictedKey;
-      setRecentSearches(lru.getAll());
+      const allRecent = lru.getAll();
+      setRecentSearches(allRecent);
+      savePersistedRecentSearches(allRecent);
     }
 
     // 5. Update analytics
@@ -152,12 +253,14 @@ export function SearchProvider({ children }) {
       const newTotal = prev.totalSearches + 1;
       const newTimes = [...prev.responseTimes, elapsed];
       const newTimeline = [...prev.searchTimeline, { timestamp: Date.now(), count: newTotal }];
-      return {
+      const updated = {
         ...prev,
         totalSearches: newTotal,
         responseTimes: newTimes,
         searchTimeline: newTimeline,
       };
+      savePersistedAnalytics(updated);
+      return updated;
     });
 
     // 6. Update last operation
@@ -195,7 +298,6 @@ export function SearchProvider({ children }) {
 
     const heap = heapRef.current;
     if (heap) {
-      // Decay scores slightly on selection as well
       const decayedHeap = heap.heap.map(item => ({
         word: item.word,
         score: Math.max(1, Math.round(item.score * 0.94))
@@ -205,21 +307,34 @@ export function SearchProvider({ children }) {
         heap.insert(item);
       });
 
-      heap.updateScore(word, 35); // Extra large weight for selection
+      heap.updateScore(word, 35);
       setTrendingItems(heap.getTopN(5));
     }
 
     const hashMap = hashMapRef.current;
     if (hashMap) {
-      hashMap.increment(word);
+      const newCount = hashMap.increment(word);
+      updatePersistedItem(word, newCount || ((hashMap.get(word) || 1)));
       setFrequencyData(hashMap.getTopN(10));
     }
 
     const lru = lruRef.current;
     if (lru) {
       lru.put(word, word);
-      setRecentSearches(lru.getAll());
+      const allRecent = lru.getAll();
+      setRecentSearches(allRecent);
+      savePersistedRecentSearches(allRecent);
     }
+  }, []);
+
+  /**
+   * Reset all data back to original seed dataset
+   */
+  const resetAllData = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEYS.DATASET);
+    localStorage.removeItem(STORAGE_KEYS.ANALYTICS);
+    localStorage.removeItem(STORAGE_KEYS.RECENT);
+    window.location.reload();
   }, []);
 
   // ── Authentication State ──
@@ -238,6 +353,7 @@ export function SearchProvider({ children }) {
     performSearch,
     getTypoCorrection,
     recordSelection,
+    resetAllData,
 
     // Reactive state
     analytics,
@@ -271,4 +387,3 @@ export function useSearch() {
   }
   return context;
 }
-
