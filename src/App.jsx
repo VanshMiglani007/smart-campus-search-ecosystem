@@ -20,7 +20,7 @@ import { Mail, Lock, X, CheckCircle2 } from 'lucide-react';
 import Footer from './components/Footer';
 
 function LockedConsole({ title, subtitle }) {
-  const { setShowLoginModal } = useSearch();
+  const { setShowLoginModal, setUser } = useSearch();
 
   return (
     <motion.div
@@ -82,41 +82,78 @@ function LockedConsole({ title, subtitle }) {
           fontSize: '14px',
           color: '#94a3b8',
           lineHeight: 1.6,
-          marginBottom: '32px',
+          marginBottom: '28px',
           maxWidth: '420px',
         }}
       >
         {subtitle}
       </p>
 
-      <button
-        onClick={() => setShowLoginModal(true)}
-        style={{
-          padding: '14px 28px',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
-          color: 'white',
-          border: 'none',
-          fontSize: '14px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(79, 142, 247, 0.2)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={e => {
-          e.currentTarget.style.transform = 'scale(1.03) translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 12px 30px rgba(79, 142, 247, 0.35)';
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.transform = 'scale(1) translateY(0)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 142, 247, 0.2)';
-        }}
-      >
-        ⚡ Unlock Admin Console
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '320px' }}>
+        <button
+          onClick={() => {
+            localStorage.setItem('campusiq_user', 'Vansh');
+            setUser('Vansh');
+          }}
+          style={{
+            width: '100%',
+            padding: '14px 24px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)',
+            color: 'white',
+            border: 'none',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(79, 142, 247, 0.25)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.03) translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(79, 142, 247, 0.35)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1) translateY(0)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(79, 142, 247, 0.25)';
+          }}
+        >
+          ⚡ 1-Click Showcase Demo Login
+        </button>
+
+        <button
+          onClick={() => setShowLoginModal(true)}
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            borderRadius: '10px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            color: '#94a3b8',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+            e.currentTarget.style.color = '#f1f5f9';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+            e.currentTarget.style.color = '#94a3b8';
+          }}
+        >
+          Enter Custom Credentials
+        </button>
+
+        <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+          Showcase Admin: <code style={{ color: '#4f8ef7' }}>vansh@campusiq.com</code> / <code style={{ color: '#00d4aa' }}>admin</code>
+        </span>
+      </div>
     </motion.div>
   );
 }
@@ -340,10 +377,49 @@ function AppContent() {
                 <button type="submit" style={{ width: '100%', padding: '11px', borderRadius: '12px', background: 'linear-gradient(135deg, #4f8ef7, #00d4aa)', color: 'white', border: 'none', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginTop: '8px', transition: 'opacity 0.2s' }}>
                   Unlock Console
                 </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0', gap: '8px' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>or demo</span>
+                  <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('campusiq_user', 'Vansh');
+                    setUser('Vansh');
+                    setSuccessMsg('Admin console unlocked! Welcome, Vansh ❤️');
+                    setTimeout(() => {
+                      setShowLoginModal(false);
+                      setSuccessMsg('');
+                    }, 800);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '12px',
+                    background: 'rgba(0, 212, 170, 0.08)',
+                    border: '1px solid rgba(0, 212, 170, 0.25)',
+                    color: '#00d4aa',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 212, 170, 0.16)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0, 212, 170, 0.08)'}
+                >
+                  ⚡ 1-Click Showcase Demo Login
+                </button>
               </form>
 
-              <p style={{ color: '#475569', fontSize: '11px', textAlign: 'center', marginTop: '16px', margin: '16px 0 0' }}>
-                Hint: Use <code style={{ color: '#4f8ef7' }}>vansh@campusiq.com</code> / <code style={{ color: '#4f8ef7' }}>admin</code> to test!
+              <p style={{ color: '#64748b', fontSize: '11px', textAlign: 'center', marginTop: '16px', margin: '16px 0 0' }}>
+                Showcase Credentials: <code style={{ color: '#4f8ef7' }}>vansh@campusiq.com</code> / <code style={{ color: '#00d4aa' }}>admin</code>
               </p>
             </motion.div>
           </motion.div>
