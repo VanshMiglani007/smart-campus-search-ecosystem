@@ -6,7 +6,10 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?style=flat&logo=tailwindcss)
 ![Vite](https://img.shields.io/badge/Vite-Build-646CFF?style=flat&logo=vite)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-black?style=flat&logo=vercel)](https://smart-campus-search-ecosystem.vercel.app/)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
+🌐 **Live Application:** [https://smart-campus-search-ecosystem.vercel.app/](https://smart-campus-search-ecosystem.vercel.app/)
 
 ---
 
